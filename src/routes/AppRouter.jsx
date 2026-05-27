@@ -1,0 +1,110 @@
+// src/routes/AppRouter.jsx
+
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth, ROLES }    from '../context/AuthContext';
+import ProtectedRoute         from './ProtectedRoute';
+
+// Auth pages
+import LoginPage              from '../pages/auth/LoginPage';
+
+// Role dashboards (create these as stubs for now)
+import OsasDashboard          from '../pages/OSAS/Dashboard';
+import GuidanceDashboard      from '../pages/guidance/Dashboard';
+import ChaplainDashboard      from '../pages/chaplain/Dashboard';
+import ChairpersonDashboard   from '../pages/chairperson/Dashboard';
+import TeacherDashboard       from '../pages/teacher/Dashboard';
+
+import UnauthorizedPage       from '../pages/auth/UnauthorizedPage';
+
+/**
+ * After login, redirect the user to their role-specific dashboard.
+ */
+function RoleRedirect() {
+  const { user } = useAuth();
+
+  const roleRoutes = {
+    [ROLES.OSAS]:            '/osas',
+    [ROLES.GUIDANCE]:        '/guidance',
+    [ROLES.CHAPLAIN]:        '/chaplain',
+    [ROLES.DEPARTMENT_HEAD]: '/chairperson',
+    [ROLES.TEACHER]:         '/teacher',
+  };
+
+  const destination = roleRoutes[user?.role_name] || '/login';
+  return <Navigate to={destination} replace />;
+}
+
+export default function AppRouter() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Public */}
+        <Route path="/login"        element={<LoginPage />} />
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+        {/* Root → role-based redirect */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <RoleRedirect />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* OSAS */}
+        <Route
+          path="/osas/*"
+          element={
+            <ProtectedRoute roles={[ROLES.OSAS]}>
+              <OsasDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Guidance */}
+        <Route
+          path="/guidance/*"
+          element={
+            <ProtectedRoute roles={[ROLES.GUIDANCE]}>
+              <GuidanceDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Chaplain */}
+        <Route
+          path="/chaplain/*"
+          element={
+            <ProtectedRoute roles={[ROLES.CHAPLAIN]}>
+              <ChaplainDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Department Head / Chairperson */}
+        <Route
+          path="/chairperson/*"
+          element={
+            <ProtectedRoute roles={[ROLES.DEPARTMENT_HEAD]}>
+              <ChairpersonDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Teacher */}
+        <Route
+          path="/teacher/*"
+          element={
+            <ProtectedRoute roles={[ROLES.TEACHER]}>
+              <TeacherDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 404 */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
