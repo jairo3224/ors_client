@@ -1,3 +1,8 @@
+function Avatar({ name }) {
+  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  return <div className="avatar">{initials}</div>;
+}
+
 export default function RosterView({ subject, onBack, onReportStudent }) {
   const students = [
     { id: 1, name: 'Juan Dela Cruz', studentId: 'STU001' },
@@ -17,6 +22,7 @@ export default function RosterView({ subject, onBack, onReportStudent }) {
       <div className="students-list">
         {students.map(student => (
           <div key={student.id} className="student-row card">
+            <Avatar name={student.name} />
             <div className="student-info">
               <h4>{student.name}</h4>
               <p>{student.studentId}</p>
