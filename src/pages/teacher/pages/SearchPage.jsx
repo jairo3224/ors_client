@@ -23,7 +23,7 @@ function Avatar({ name }) {
   return <div className="avatar">{initials}</div>;
 }
 
-export default function SearchView() {
+export default function SearchPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState([]);
   const [searched, setSearched] = useState(false);
@@ -46,43 +46,52 @@ export default function SearchView() {
   };
 
   return (
-    <div className="search-view">
-      <div className="card" style={{ maxWidth: 600 }}>
-        <form onSubmit={handleSearch}>
-          <div className="form-group form-search-row">
-            <input
-              type="text"
-              className="input"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by student name or ID..."
-            />
-            <button type="submit" className="btn-primary">Search</button>
-          </div>
-        </form>
+    <div>
+      <div className="page-header">
+        <h1>🔍 Student Lookup</h1>
+        <div className="date">
+          {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </div>
       </div>
 
-      {searched && results.length === 0 && (
-        <div className="card no-results">
-          <p>No students found. Try a different name or ID.</p>
+      <div className="search-view">
+        <div className="card" style={{ maxWidth: 600 }}>
+          <form onSubmit={handleSearch}>
+            <div className="form-group form-search-row">
+              <input
+                type="text"
+                className="input"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by student name or ID..."
+              />
+              <button type="submit" className="btn-primary">Search</button>
+            </div>
+          </form>
         </div>
-      )}
 
-      {results.length > 0 && (
-        <div className="search-results">
-          {results.map((student) => (
-            <div key={student.id} className="student-result card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Avatar name={student.name} />
-                <div>
-                  <h4>{student.name}</h4>
-                  <p>ID: {student.studentId} · {student.year} · {student.program}</p>
+        {searched && results.length === 0 && (
+          <div className="card no-results">
+            <p>No students found. Try a different name or ID.</p>
+          </div>
+        )}
+
+        {results.length > 0 && (
+          <div className="search-results">
+            {results.map((student) => (
+              <div key={student.id} className="student-result card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Avatar name={student.name} />
+                  <div>
+                    <h4>{student.name}</h4>
+                    <p>ID: {student.studentId} · {student.year} · {student.program}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

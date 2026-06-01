@@ -1,18 +1,24 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import spacLogo from '../../../assets/spac logo 2.png';
 import './Navbar.css';
 
 const NAV_ITEMS = [
-  { key: 'classes', label: 'My Classes',     icon: '📚' },
-  { key: 'report',  label: 'Report Incident', icon: '📝' },
-  { key: 'reports', label: 'My Reports',      icon: '📋' },
-  { key: 'search',  label: 'Student Lookup',  icon: '🔍' },
+  { key: 'classes', label: 'My Classes',     icon: '📚', path: '/teacher/classes' },
+  { key: 'report',  label: 'Report Incident', icon: '📝', path: '/teacher/report' },
+  { key: 'reports', label: 'My Reports',      icon: '📋', path: '/teacher/reports' },
+  { key: 'search',  label: 'Student Lookup',  icon: '🔍', path: '/teacher/search' },
 ];
 
-export default function Navbar({ activeView, pendingCount, onNavigate }) {
+export default function Navbar({ activeView, pendingCount }) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const fullName = `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim();
+
+  const handleNavClick = (item) => {
+    navigate(item.path);
+  };
 
   return (
     <nav className="navbar-top">
@@ -26,18 +32,12 @@ export default function Navbar({ activeView, pendingCount, onNavigate }) {
 
       <ul className="navbar-links">
         {NAV_ITEMS.map(item => {
-          const isActive = activeView === item.key || (item.key === 'classes' && activeView === 'roster');
+          const isActive = activeView === item.key;
           return (
             <li key={item.key}>
               <button
                 className={`navbar-link ${isActive ? 'active' : ''}`}
-                onClick={() => {
-                  if (item.key === 'classes') {
-                    onNavigate('classes', { resetSubject: true });
-                  } else {
-                    onNavigate(item.key);
-                  }
-                }}
+                onClick={() => handleNavClick(item)}
               >
                 <span className="nav-icon">{item.icon}</span>
                 <span>{item.label}</span>

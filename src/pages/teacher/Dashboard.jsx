@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from './components/Navbar';
-import ClassesView from './components/ClassesView';
-import RosterView from './components/RosterView';
-import ReportView from './components/ReportView';
-import ReportsView from './components/ReportsView';
-import SearchView from './components/SearchView';
 import Footer from '../../components/common/Footer';
-import './Dashboard.css';
+import { Outlet } from 'react-router-dom';
+import './components/Dashboard.css';
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────
 const MOCK_INCIDENTS = [
@@ -20,6 +17,64 @@ const MOCK_INCIDENTS = [
   { id: 7, student_name: 'Isabella Chua', incident_type: 'Attendance Issue', urgency_level: 'Low', current_status: 'resolved', description: 'Missed 3 lab sessions due to medical reasons. Presented a valid medical certificate and caught up with missed work.', date_reported: '2026-05-18' },
 ];
 
+export default function TeacherDashboard() {
+  const { user } = useAuth();
+  const location = useLocation();
+  const [myIncidents, setMyIncidents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => {
+    loadMyIncidents();
+  }, []);
+
+  const loadMyIncidents = async () => {
+    setLoading(true);
+    // Simulate API delay
+    await new Promise(r => setTimeout(r, 400));
+    setMyIncidents(MOCK_INCIDENTS);
+    setLoading(false);
+  };
+
+  const pendingCount = myIncidents.filter(i => i.current_status === 'reported').length;
+
+  // Determine current page for navbar highlight
+  const getCurrentView = () => {
+    const path = location.pathname;
+    if (path.includes('/classes')) return 'classes';
+    if (path.includes('/roster')) return 'classes';
+    if (path.includes('/report')) return 'report';
+    if (path.includes('/reports')) return 'reports';
+    if (path.includes('/search')) return 'search';
+    return 'classes';
+  };
+
+  return (
+    <div className="dashboard-body">
+      {showSuccess && <SuccessBanner onDismiss={() => setShowSuccess(false)} />}
+
+      <Navbar
+        activeView={getCurrentView()}
+        pendingCount={pendingCount}
+      />
+
+      <main className="main-content">
+        <Outlet context={{ 
+          myIncidents, 
+          setMyIncidents, 
+          loading, 
+          setLoading,
+          loadMyIncidents,
+          showSuccess,
+          setShowSuccess 
+        }} />
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
+
 function SuccessBanner({ onDismiss }) {
   useEffect(() => {
     const t = setTimeout(onDismiss, 4000);
@@ -31,89 +86,3 @@ function SuccessBanner({ onDismiss }) {
     </div>
   );
 }
-
-export default function TeacherDashboard() {
-  const { user } = useAuth();
-  const [activeView, setActiveView] = useState('classes');
-  const [selectedSubject, setSelectedSubject] = useState(null);
-  const [reportStudent, setReportStudent] = useState(null);
-  const [myIncidents, setMyIncidents] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  useEffect(() => { loadMyIncidents(); }, []);
-
-  const loadMyIncidents = async () => {
-    setLoading(true);
-    // Simulate API delay
-    await new Promise(r => setTimeout(r, 400));
-    setMyIncidents(MOCK_INCIDENTS);
-    setLoading(false);
-  };
-
-  const handleNavigate = (view, options = {}) => {
-    if (options.resetSubject) {
-      setSelectedSubject(null);
-      setActiveView('classes');
-    } else {
-      setActiveView(view);
-    }
-  };
-
-  const handleSelectSubject = (sub) => {
-    setSelectedSubject(sub);
-    setActiveView('roster');
-  };
-
-  const handleReportStudent = (student) => {
-    setReportStudent(student);
-    setActiveView('report');
-  };
-
-  const pendingCount = myIncidents.filter(i => i.current_status === 'reported').length;
-
-  return (
-    <div className="dashboard-body">
-      {showSuccess && <SuccessBanner onDismiss={() => setShowSuccess(false)} />}
-
-      <Navbar
-        activeView={activeView}
-        pendingCount={pendingCount}
-        onNavigate={handleNavigate}
-      />
-
-      <main className="main-content">
-        <div className="page-header">
-          <h1>
-            {activeView === 'classes' && '📚 My Classes'}
-            {activeView === 'roster' && '📚 Class Roster'}
-            {activeView === 'report' && '📝 Report Incident'}
-            {activeView === 'reports' && '📋 My Reports'}
-            {activeView === 'search' && '🔍 Student Lookup'}
-          </h1>
-          <div className="date">
-            {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </div>
-        </div>
-
-        {/* Render sub-views – reuse the existing view components but now using className */}
-        {activeView === 'classes' && (
-          <ClassesView onSelectSubject={handleSelectSubject} />
-        )}
-        {activeView === 'roster' && selectedSubject && (
-          <RosterView subject={selectedSubject} onBack={() => setActiveView('classes')} onReportStudent={handleReportStudent} />
-        )}
-        {activeView === 'report' && (
-          <ReportView onSuccess={() => { setShowSuccess(true); loadMyIncidents(); setActiveView('reports'); }} initialStudent={reportStudent} />
-        )}
-        {activeView === 'reports' && (
-          <ReportsView incidents={myIncidents} loading={loading} />
-        )}
-        {activeView === 'search' && (
-          <SearchView />
-        )}
-        </main>
-        <Footer />
-      </div>
-    );
-  }
