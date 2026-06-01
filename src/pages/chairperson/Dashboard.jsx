@@ -5,30 +5,63 @@ import ChairpersonNavbar from './components/ChairpersonNavbar';
 import Footer from '../../components/common/Footer';
 import './components/Dashboard.css';
 
-// ─── MOCK DATA ────────────────────────────────────────────────────────
+// ─── MOCK DATA (now includes department_id) ─────────────────────────
 const MOCK_STUDENTS = [
-  { id: 1, student_id: '2024-0001', first_name: 'Maria', last_name: 'Santos', year_level: '3rd Year', program: 'BS Computer Science', status: 'active', email: 'maria.santos@school.edu', phone: '09171234567', cases_count: 2 },
-  { id: 2, student_id: '2024-0002', first_name: 'Juan', last_name: 'Dela Cruz', year_level: '2nd Year', program: 'BS Computer Science', status: 'active', email: 'juan.dc@school.edu', phone: '09181234567', cases_count: 0 },
-  { id: 3, student_id: '2024-0003', first_name: 'Ana', last_name: 'Reyes', year_level: '4th Year', program: 'BS Information Technology', status: 'flagged', email: 'ana.reyes@school.edu', phone: '09191234567', cases_count: 4 },
-  { id: 4, student_id: '2024-0004', first_name: 'Pedro', last_name: 'Lim', year_level: '1st Year', program: 'BS Computer Science', status: 'active', email: 'pedro.lim@school.edu', phone: '09201234567', cases_count: 1 },
-  { id: 5, student_id: '2024-0005', first_name: 'Rosa', last_name: 'Garcia', year_level: '3rd Year', program: 'BS Information Technology', status: 'active', email: 'rosa.garcia@school.edu', phone: '09211234567', cases_count: 0 },
+  { id: 1, student_id: '2024-0001', first_name: 'Maria', last_name: 'Santos', year_level: '3rd Year', program: 'BS Computer Science', status: 'active', email: 'maria.santos@school.edu', phone: '09171234567', cases_count: 2, department_id: 1 },
+  { id: 2, student_id: '2024-0002', first_name: 'Juan', last_name: 'Dela Cruz', year_level: '2nd Year', program: 'BS Computer Science', status: 'active', email: 'juan.dc@school.edu', phone: '09181234567', cases_count: 0, department_id: 1 },
+  { id: 3, student_id: '2024-0003', first_name: 'Ana', last_name: 'Reyes', year_level: '4th Year', program: 'BS Information Technology', status: 'flagged', email: 'ana.reyes@school.edu', phone: '09191234567', cases_count: 4, department_id: 1 },
+  { id: 4, student_id: '2024-0004', first_name: 'Pedro', last_name: 'Lim', year_level: '1st Year', program: 'BS Computer Science', status: 'active', email: 'pedro.lim@school.edu', phone: '09201234567', cases_count: 1, department_id: 1 },
+  { id: 5, student_id: '2024-0005', first_name: 'Rosa', last_name: 'Garcia', year_level: '3rd Year', program: 'BS Information Technology', status: 'active', email: 'rosa.garcia@school.edu', phone: '09211234567', cases_count: 0, department_id: 1 },
+  // a student from another department – will be filtered out for non‑OSAS
+  { id: 99, student_id: '2024-0099', first_name: 'Jose', last_name: 'Outsider', year_level: '2nd Year', program: 'BS Physics', status: 'active', email: 'jose.out@school.edu', phone: '09991234567', cases_count: 0, department_id: 99 },
 ];
 
 const MOCK_REPORTS = [
-  { id: 1, student_id: 1, student_name: 'Maria Santos', teacher_name: 'Prof. Jose Rizal', subject: 'Data Structures', type: 'behavioral', severity: 'moderate', description: 'Student has been disruptive in class for the past two weeks.', date_submitted: '2025-05-20', status: 'pending', remarks: [] },
-  { id: 2, student_id: 3, student_name: 'Ana Reyes', teacher_name: 'Prof. Andres Bonifacio', subject: 'Database Management', type: 'academic', severity: 'high', description: 'Missed 6 classes and failed to submit 3 major requirements.', date_submitted: '2025-05-22', status: 'reviewed', remarks: [{ author: 'Chair. M. Aquino', text: 'Forwarded to guidance.', date: '2025-05-23' }] },
-  { id: 3, student_id: 1, student_name: 'Maria Santos', teacher_name: 'Prof. Emilio Aguinaldo', subject: 'Algorithms', type: 'behavioral', severity: 'low', description: 'Late 4 times this month.', date_submitted: '2025-05-24', status: 'pending', remarks: [] },
-  { id: 4, student_id: 4, student_name: 'Pedro Lim', teacher_name: 'Prof. Jose Rizal', subject: 'Data Structures', type: 'disciplinary', severity: 'moderate', description: 'Suspected academic dishonesty during midterm exam.', date_submitted: '2025-05-25', status: 'forwarded', remarks: [] },
+  { id: 1, student_id: 1, student_name: 'Maria Santos', teacher_name: 'Prof. Jose Rizal', subject: 'Data Structures', type: 'behavioral', severity: 'moderate', description: 'Student has been disruptive in class for the past two weeks.', date_submitted: '2025-05-20', status: 'pending', remarks: [], department_id: 1 },
+  { id: 2, student_id: 3, student_name: 'Ana Reyes', teacher_name: 'Prof. Andres Bonifacio', subject: 'Database Management', type: 'academic', severity: 'high', description: 'Missed 6 classes and failed to submit 3 major requirements.', date_submitted: '2025-05-22', status: 'reviewed', remarks: [{ author: 'Chair. M. Aquino', text: 'Forwarded to guidance.', date: '2025-05-23' }], department_id: 1 },
+  { id: 3, student_id: 1, student_name: 'Maria Santos', teacher_name: 'Prof. Emilio Aguinaldo', subject: 'Algorithms', type: 'behavioral', severity: 'low', description: 'Late 4 times this month.', date_submitted: '2025-05-24', status: 'pending', remarks: [], department_id: 1 },
+  { id: 4, student_id: 4, student_name: 'Pedro Lim', teacher_name: 'Prof. Jose Rizal', subject: 'Data Structures', type: 'disciplinary', severity: 'moderate', description: 'Suspected academic dishonesty during midterm exam.', date_submitted: '2025-05-25', status: 'forwarded', remarks: [], department_id: 1 },
+  { id: 99, student_id: 99, student_name: 'Jose Outsider', teacher_name: 'Prof. X', subject: 'Physics', type: 'academic', severity: 'low', description: 'Outsider report', date_submitted: '2025-06-01', status: 'pending', remarks: [], department_id: 99 },
 ];
 
 const MOCK_CASES = [
-  { id: 1, student_id: 1, student_name: 'Maria Santos', title: 'Repeated Disruptive Behavior', type: 'behavioral', status: 'open', priority: 'medium', assigned_to: null, opened_date: '2025-05-20', last_update: '2025-05-20', notes: 'Multiple teacher reports.' },
-  { id: 2, student_id: 3, student_name: 'Ana Reyes', title: 'Academic Delinquency + Attendance', type: 'academic', status: 'referred', priority: 'high', assigned_to: 'Guidance Office', opened_date: '2025-05-18', last_update: '2025-05-23', notes: 'Referred to guidance.' },
-  { id: 3, student_id: 4, student_name: 'Pedro Lim', title: 'Academic Dishonesty Investigation', type: 'disciplinary', status: 'open', priority: 'high', assigned_to: null, opened_date: '2025-05-25', last_update: '2025-05-25', notes: '' },
-  { id: 4, student_id: 3, student_name: 'Ana Reyes', title: 'Family / Financial Concern', type: 'personal', status: 'referred', priority: 'high', assigned_to: 'OSAS', opened_date: '2025-05-15', last_update: '2025-05-19', notes: 'Financial difficulties – referred to OSAS for scholarship.' },
+  { id: 1, student_id: 1, student_name: 'Maria Santos', title: 'Repeated Disruptive Behavior', type: 'behavioral', status: 'open', priority: 'medium', assigned_to: null, opened_date: '2025-05-20', last_update: '2025-05-20', notes: 'Multiple teacher reports.', department_id: 1 },
+  { id: 2, student_id: 3, student_name: 'Ana Reyes', title: 'Academic Delinquency + Attendance', type: 'academic', status: 'referred', priority: 'high', assigned_to: 'Guidance Office', opened_date: '2025-05-18', last_update: '2025-05-23', notes: 'Referred to guidance.', department_id: 1 },
+  { id: 3, student_id: 4, student_name: 'Pedro Lim', title: 'Academic Dishonesty Investigation', type: 'disciplinary', status: 'open', priority: 'high', assigned_to: null, opened_date: '2025-05-25', last_update: '2025-05-25', notes: '', department_id: 1 },
+  { id: 4, student_id: 3, student_name: 'Ana Reyes', title: 'Family / Financial Concern', type: 'personal', status: 'referred', priority: 'high', assigned_to: 'OSAS', opened_date: '2025-05-15', last_update: '2025-05-19', notes: 'Financial difficulties – referred to OSAS for scholarship.', department_id: 1 },
+  { id: 99, student_id: 99, student_name: 'Jose Outsider', title: 'Outsider case', type: 'other', status: 'open', priority: 'low', assigned_to: null, opened_date: '2025-06-01', last_update: '2025-06-01', notes: '', department_id: 99 },
 ];
 
-const FORWARD_OPTIONS = ['Guidance Office', 'Chaplain', 'OSAS'];
+// ─── NEW: Referrals from OSAS to this department ────────────────────
+const MOCK_REFERRALS = [
+  {
+    id: 101,
+    student_id: 1,
+    student_name: 'Maria Santos',
+    subject: 'Academic Impact Review',
+    description: 'Student has been referred by OSAS due to repeated misconduct. Please assess impact on academic performance and provide recommendations.',
+    from_office: 'OSAS',
+    date_received: '2025-05-26',
+    status: 'pending',
+    response: null,
+    department_id: 1,
+  },
+  {
+    id: 102,
+    student_id: 3,
+    student_name: 'Ana Reyes',
+    subject: 'Scholarship Continuity Assessment',
+    description: 'Ana Reyes has financial difficulties. OSAS asks the department to evaluate her academic standing for possible scholarship extension.',
+    from_office: 'OSAS',
+    date_received: '2025-05-28',
+    status: 'responded',
+    response: 'Ana is performing well academically (GPA 3.2). I recommend granting the scholarship extension.',
+    department_id: 1,
+  },
+];
+
+// ─── FORWARDING – CHAIRPERSON CAN ONLY SEND TO OSAS ────────────────
+const FORWARD_OPTIONS = ['OSAS'];
 
 const SEVERITY_CLASS = {
   low: 'badge--low',
@@ -51,7 +84,7 @@ const PRIORITY_CLASS = {
   high: 'priority--high',
 };
 
-// ─── SUBCOMPONENTS ────────────────────────────────────────────────────
+// ─── HELPER COMPONENTS ─────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, accent }) {
   return (
     <div className="stat-card">
@@ -72,6 +105,7 @@ function Avatar({ name }) {
   return <div className="avatar">{initials}</div>;
 }
 
+// ─── PAGE‑LEVEL VIEWS (used by the nested routes) ──────────────────
 function OverviewView({ students, reports, cases }) {
   const flagged = students.filter(s => s.status === 'flagged').length;
   const pendingReports = reports.filter(r => r.status === 'pending').length;
@@ -262,7 +296,7 @@ function ReportsView({ reports, onAddRemark, onForward }) {
           <div className="report-card__actions">
             <button className="btn btn--sm" onClick={() => onAddRemark(report)}>Add Remark</button>
             {report.status !== 'forwarded' && (
-              <button className="btn btn--sm btn--warning" onClick={() => onForward(report, 'report')}>Forward Case</button>
+              <button className="btn btn--sm btn--warning" onClick={() => onForward(report, 'report')}>Forward to OSAS</button>
             )}
           </div>
         </div>
@@ -272,8 +306,9 @@ function ReportsView({ reports, onAddRemark, onForward }) {
   );
 }
 
-function CasesView({ cases, onForward, onUpdateStatus }) {
+function CasesView({ cases, onForward }) {
   const [filter, setFilter] = useState('all');
+
   const filtered = cases.filter(c => filter === 'all' || c.status === filter || c.priority === filter);
 
   return (
@@ -306,17 +341,14 @@ function CasesView({ cases, onForward, onUpdateStatus }) {
 
           {c.notes && <p className="case-card__notes">{c.notes}</p>}
 
-          <div className="case-card__actions">
-            {c.status === 'open' && (
-              <>
-                <button className="btn btn--sm btn--warning" onClick={() => onForward(c, 'case')}>Refer to Office</button>
-                <button className="btn btn--sm btn--success" onClick={() => onUpdateStatus(c.id, 'closed')}>Close Case</button>
-              </>
-            )}
-            {c.status === 'referred' && (
-              <button className="btn btn--sm btn--success" onClick={() => onUpdateStatus(c.id, 'closed')}>Mark Resolved</button>
-            )}
-          </div>
+          {/* Only the Refer to OSAS action – no status changes */}
+          {c.status === 'open' && (
+            <div className="case-card__actions">
+              <button className="btn btn--sm btn--warning" onClick={() => onForward(c, 'case')}>
+                Refer to OSAS
+              </button>
+            </div>
+          )}
         </div>
       ))}
       {filtered.length === 0 && <div className="card empty-state">No cases found.</div>}
@@ -324,7 +356,7 @@ function CasesView({ cases, onForward, onUpdateStatus }) {
   );
 }
 
-// ─── MODALS ────────────────────────────────────────────────────────────────
+// ─── MODALS ─────────────────────────────────────────────────────────
 function StudentModal({ student, reports, cases, onClose }) {
   if (!student) return null;
   const studentReports = reports.filter(r => r.student_id === student.id);
@@ -456,12 +488,12 @@ function ForwardModal({ item, type, onClose, onSubmit }) {
   );
 }
 
-// ─── HOOK: useChairpersonContext ──────────────────────────────────────
+// ─── HOOK: useChairpersonContext ────────────────────────────────────
 export function useChairpersonContext() {
   return useOutletContext();
 }
 
-// ─── PAGE COMPONENTS (for nested routes) ──────────────────────────────
+// ─── PAGE COMPONENTS (for nested routes) ────────────────────────────
 export function OverviewPage() {
   const { students, reports, cases, loading } = useChairpersonContext();
 
@@ -490,25 +522,25 @@ export function ReportsPage() {
 }
 
 export function CasesPage() {
-  const { cases, setForwardTarget, setForwardType, handleUpdateCaseStatus, loading } = useChairpersonContext();
+  const { cases, setForwardTarget, setForwardType, loading } = useChairpersonContext();
 
   if (loading) return <div className="loading">Loading department data...</div>;
   return (
     <CasesView
       cases={cases}
       onForward={(item, type) => { setForwardTarget(item); setForwardType(type); }}
-      onUpdateStatus={handleUpdateCaseStatus}
     />
   );
 }
 
-// ─── MAIN DASHBOARD ──────────────────────────────────────────────────────
+// ─── MAIN DASHBOARD ─────────────────────────────────────────────────
 export default function Dashboard() {
   const { user } = useAuth();
 
   const [students, setStudents] = useState([]);
   const [reports, setReports] = useState([]);
   const [cases, setCases] = useState([]);
+  const [inbox, setInbox] = useState([]);  // <-- new state
   const [loading, setLoading] = useState(true);
 
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -516,15 +548,37 @@ export default function Dashboard() {
   const [forwardTarget, setForwardTarget] = useState(null);
   const [forwardType, setForwardType] = useState(null);
 
+  // Simulate department‑scoped data loading
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        // TODO: replace with API
+        // TODO: replace with API call
         await new Promise(r => setTimeout(r, 400));
-        setStudents(MOCK_STUDENTS);
-        setReports(MOCK_REPORTS);
-        setCases(MOCK_CASES);
+
+        const deptId = user?.department_id; // e.g. 1
+        console.log('Dashboard loading data:', { user, deptId });
+        // Filter mock data by chairperson’s own department
+        const filteredStudents = deptId
+          ? MOCK_STUDENTS.filter(s => s.department_id === deptId)
+          : MOCK_STUDENTS;
+        const filteredReports = deptId
+          ? MOCK_REPORTS.filter(r => r.department_id === deptId)
+          : MOCK_REPORTS;
+        const filteredCases = deptId
+          ? MOCK_CASES.filter(c => c.department_id === deptId)
+          : MOCK_CASES;
+        const filteredInbox = deptId
+          ? MOCK_REFERRALS.filter(i => i.department_id === deptId)
+          : MOCK_REFERRALS;
+
+        const hasDepartmentData =
+          filteredStudents.length || filteredReports.length || filteredCases.length || filteredInbox.length;
+
+        setStudents(hasDepartmentData ? filteredStudents : MOCK_STUDENTS);
+        setReports(hasDepartmentData ? filteredReports : MOCK_REPORTS);
+        setCases(hasDepartmentData ? filteredCases : MOCK_CASES);
+        setInbox(hasDepartmentData ? filteredInbox : MOCK_REFERRALS);
       } catch (err) {
         console.error(err);
       } finally {
@@ -532,7 +586,7 @@ export default function Dashboard() {
       }
     }
     loadData();
-  }, []);
+  }, [user]);
 
   const handleAddRemark = useCallback(async (reportId, text, authorName) => {
     const today = new Date().toISOString().split('T')[0];
@@ -553,20 +607,26 @@ export default function Dashboard() {
     }
   }, []);
 
-  const handleUpdateCaseStatus = useCallback(async (caseId, newStatus) => {
-    setCases(prev => prev.map(c => c.id === caseId
-      ? { ...c, status: newStatus, last_update: new Date().toISOString().split('T')[0] }
-      : c
-    ));
+  // New: handle response to a referral from OSAS
+  const handleInboxResponse = useCallback(async (referralId, responseText) => {
+    setInbox(prev =>
+      prev.map(i =>
+        i.id === referralId
+          ? { ...i, status: 'responded', response: responseText }
+          : i
+      )
+    );
   }, []);
 
   const pendingCount = reports.filter(r => r.status === 'pending').length;
   const openCaseCount = cases.filter(c => c.status === 'open').length;
+  const inboxPendingCount = inbox.filter(i => i.status === 'pending').length;
 
   const outletContext = {
     students,
     reports,
     cases,
+    inbox,                  // <-- exposed
     loading,
     setSelectedStudent,
     setRemarkTarget,
@@ -574,19 +634,23 @@ export default function Dashboard() {
     setForwardType,
     handleAddRemark,
     handleForward,
-    handleUpdateCaseStatus,
+    handleInboxResponse,    // <-- exposed
     user,
+    // Note: handleUpdateCaseStatus is intentionally not exposed
   };
 
   return (
     <div className="dashboard">
-      <ChairpersonNavbar pendingCount={pendingCount} openCaseCount={openCaseCount} />
+      <ChairpersonNavbar
+        pendingCount={pendingCount}
+        openCaseCount={openCaseCount}
+        inboxPendingCount={inboxPendingCount}   // <-- new prop
+      />
 
       <main className="main-content">
         <Outlet context={outletContext} />
       </main>
 
-      {/* Globally accessible modals */}
       <StudentModal
         student={selectedStudent}
         reports={reports}

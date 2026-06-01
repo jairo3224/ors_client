@@ -6,7 +6,8 @@ const STATUS_CLASS = { open: 'badge--open', referred: 'badge--referred', closed:
 const PRIORITY_CLASS = { low: 'priority--low', medium: 'priority--medium', high: 'priority--high' };
 
 export default function CasesPage() {
-  const { cases, setForwardTarget, setForwardType, handleUpdateCaseStatus, user } = useOutletContext();
+  // No longer pull handleUpdateCaseStatus – chairperson cannot change case status
+  const { cases, setForwardTarget, setForwardType, user } = useOutletContext();
   const [filter, setFilter] = useState('all');
 
   const filtered = cases.filter(c => filter === 'all' || c.status === filter || c.priority === filter);
@@ -46,23 +47,18 @@ export default function CasesPage() {
             <span><strong>Last update:</strong> {c.last_update}</span>
           </div>
           {c.notes && <p className="case-card__notes">{c.notes}</p>}
-          <div className="case-card__actions">
-            {c.status === 'open' && (
-              <>
-                <button className="btn btn--sm btn--warning" onClick={() => { setForwardTarget(c); setForwardType('case'); }}>
-                  Refer to Office
-                </button>
-                <button className="btn btn--sm btn--success" onClick={() => handleUpdateCaseStatus(c.id, 'closed')}>
-                  Close Case
-                </button>
-              </>
-            )}
-            {c.status === 'referred' && (
-              <button className="btn btn--sm btn--success" onClick={() => handleUpdateCaseStatus(c.id, 'closed')}>
-                Mark Resolved
+
+          {/* Only “Refer to OSAS” – no status changes allowed */}
+          {c.status === 'open' && (
+            <div className="case-card__actions">
+              <button
+                className="btn btn--sm btn--warning"
+                onClick={() => { setForwardTarget(c); setForwardType('case'); }}
+              >
+                Refer to OSAS
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       ))}
       {filtered.length === 0 && <div className="card empty-state">No cases found.</div>}

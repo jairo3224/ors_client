@@ -7,9 +7,14 @@ const NAV_ITEMS = [
   { path: '/chairperson/students', label: 'Students',  icon: '👥' },
   { path: '/chairperson/reports',  label: 'Reports',   icon: '📄' },
   { path: '/chairperson/cases',    label: 'Cases',     icon: '🗂️' },
+  { path: '/chairperson/inbox',    label: 'Inbox',     icon: '📥' },  // new
 ];
 
-export default function ChairpersonNavbar({ pendingCount = 0, openCaseCount = 0 }) {
+export default function ChairpersonNavbar({
+  pendingCount = 0,
+  openCaseCount = 0,
+  inboxPendingCount = 0,   // new prop
+}) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -47,6 +52,9 @@ export default function ChairpersonNavbar({ pendingCount = 0, openCaseCount = 0 
               )}
               {item.label === 'Cases' && openCaseCount > 0 && (
                 <span className="c-navbar__badge c-navbar__badge--warning">{openCaseCount}</span>
+              )}
+              {item.label === 'Inbox' && inboxPendingCount > 0 && (
+                <span className="c-navbar__badge c-navbar__badge--warning">{inboxPendingCount}</span>
               )}
             </NavLink>
           ))}

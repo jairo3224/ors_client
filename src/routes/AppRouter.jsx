@@ -19,6 +19,7 @@ import OverviewPage           from '../pages/chairperson/OverviewPage';
 import StudentsPage           from '../pages/chairperson/StudentsPage';
 import ReportsPage            from '../pages/chairperson/ReportsPage';
 import CasesPage              from '../pages/chairperson/CasesPage';
+import InboxPage              from '../pages/chairperson/InboxPage';
 
 import UnauthorizedPage       from '../pages/auth/UnauthorizedPage';
 
@@ -101,6 +102,7 @@ export default function AppRouter() {
   <Route path="students" element={<StudentsPage />} />
   <Route path="reports" element={<ReportsPage />} />
   <Route path="cases" element={<CasesPage />} />
+  <Route path="inbox" element={<InboxPage />} />   {/* new */}
 </Route>
 
         {/* Teacher */}

@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import './components/StudentsPage.css';
 
-function Avatar({ name }) { /* same as before */ }
+function Avatar({ name }) {
+  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  return <div className="avatar">{initials}</div>;
+}
 
 export default function StudentsPage() {
   const { students, setSelectedStudent, user } = useOutletContext();

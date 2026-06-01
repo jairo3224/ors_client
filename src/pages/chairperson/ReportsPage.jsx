@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import './components/ReportsPage.css';
 
-function Avatar({ name }) { /* same */ }
+function Avatar({ name }) {
+  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  return <div className="avatar">{initials}</div>;
+}
 
 const SEVERITY_CLASS = { low: 'badge--low', moderate: 'badge--moderate', high: 'badge--high' };
 const STATUS_CLASS = { pending: 'badge--pending', reviewed: 'badge--reviewed', forwarded: 'badge--forwarded',
