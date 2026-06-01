@@ -62,7 +62,7 @@ export default function ReportsView({ incidents, loading }) {
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {incident.current_status === 'reported' && (
-                <button className="btn-orange">Forward</button>
+                <button className="btn btn--sm btn--warning">Forward</button>
               )}
             </div>
           </div>
