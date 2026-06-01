@@ -14,6 +14,12 @@ import ChaplainDashboard      from '../pages/chaplain/Dashboard';
 import ChairpersonDashboard   from '../pages/chairperson/Dashboard';
 import TeacherDashboard       from '../pages/teacher/Dashboard';
 
+// Chairperson sub-pages
+import OverviewPage           from '../pages/chairperson/OverviewPage';
+import StudentsPage           from '../pages/chairperson/StudentsPage';
+import ReportsPage            from '../pages/chairperson/ReportsPage';
+import CasesPage              from '../pages/chairperson/CasesPage';
+
 import UnauthorizedPage       from '../pages/auth/UnauthorizedPage';
 
 /**
@@ -84,13 +90,18 @@ export default function AppRouter() {
 
         {/* Department Head / Chairperson */}
         <Route
-          path="/chairperson/*"
-          element={
-            <ProtectedRoute roles={[ROLES.DEPARTMENT_HEAD]}>
-              <ChairpersonDashboard />
-            </ProtectedRoute>
-          }
-        />
+  path="/chairperson"
+  element={
+    <ProtectedRoute roles={[ROLES.DEPARTMENT_HEAD]}>
+      <ChairpersonDashboard />
+    </ProtectedRoute>
+  }
+>
+  <Route index element={<OverviewPage />} />
+  <Route path="students" element={<StudentsPage />} />
+  <Route path="reports" element={<ReportsPage />} />
+  <Route path="cases" element={<CasesPage />} />
+</Route>
 
         {/* Teacher */}
         <Route
