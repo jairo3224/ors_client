@@ -1,4 +1,5 @@
 import { useAuth } from '../../../context/AuthContext';
+import spacLogo from '../../../assets/spac logo 2.png';
 import './Navbar.css';
 
 const NAV_ITEMS = [
@@ -16,7 +17,7 @@ export default function Navbar({ activeView, pendingCount, onNavigate }) {
   return (
     <nav className="navbar-top">
       <div className="navbar-brand">
-        <img src="/spac logo 2.png" alt="Logo" className="navbar-logo" />
+        <img src={spacLogo} alt="Logo" className="navbar-logo" />
         <div className="navbar-brand-text">
           <span className="navbar-dept">{user?.department_name ?? 'Faculty'}</span>
           <span className="navbar-portal">Teacher Portal</span>

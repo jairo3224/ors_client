@@ -7,6 +7,11 @@ const STUDENTS = [
   { id: 4, name: 'Anna Lopez', studentId: 'STU004', grade: '10', section: 'A' },
 ];
 
+function Avatar({ name }) {
+  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  return <div className="avatar">{initials}</div>;
+}
+
 export default function SearchView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState([]);
@@ -31,7 +36,7 @@ export default function SearchView() {
 
   return (
     <div className="search-view">
-      <div className="search-form card">
+      <div className="card" style={{ maxWidth: 600 }}>
         <form onSubmit={handleSearch}>
           <div className="form-group form-search-row">
             <input
@@ -56,10 +61,12 @@ export default function SearchView() {
         <div className="search-results">
           {results.map((student) => (
             <div key={student.id} className="student-result card">
-              <div>
-                <h4>{student.name}</h4>
-                <p>ID: {student.studentId}</p>
-                <p>Grade {student.grade} · Section {student.section}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Avatar name={student.name} />
+                <div>
+                  <h4>{student.name}</h4>
+                  <p>ID: {student.studentId} · Grade {student.grade} · Section {student.section}</p>
+                </div>
               </div>
             </div>
           ))}

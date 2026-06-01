@@ -9,13 +9,6 @@ import ReportsView from './components/ReportsView';
 import SearchView from './components/SearchView';
 import './Dashboard.css';
 
-const URGENCY_CONFIG = { /* … same as before … */ };
-const STATUS_CONFIG = { /* … same as before … */ };
-
-function getStatusCfg(status) {
-  return STATUS_CONFIG[status] ?? { bg: '#e3f2fd', color: '#1565c0', label: status };
-}
-
 function SuccessBanner({ onDismiss }) {
   useEffect(() => {
     const t = setTimeout(onDismiss, 4000);
