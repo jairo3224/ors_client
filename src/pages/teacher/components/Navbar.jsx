@@ -1,0 +1,61 @@
+import { useAuth } from '../../../context/AuthContext';
+import './Navbar.css';
+
+const NAV_ITEMS = [
+  { key: 'classes', label: 'My Classes',     icon: '📚' },
+  { key: 'report',  label: 'Report Incident', icon: '📝' },
+  { key: 'reports', label: 'My Reports',      icon: '📋' },
+  { key: 'search',  label: 'Student Lookup',  icon: '🔍' },
+];
+
+export default function Navbar({ activeView, pendingCount, onNavigate }) {
+  const { user, logout } = useAuth();
+
+  const fullName = `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim();
+
+  return (
+    <nav className="navbar-top">
+      <div className="navbar-brand">
+        <img src="/spac logo 2.png" alt="Logo" className="navbar-logo" />
+        <div className="navbar-brand-text">
+          <span className="navbar-dept">{user?.department_name ?? 'Faculty'}</span>
+          <span className="navbar-portal">Teacher Portal</span>
+        </div>
+      </div>
+
+      <ul className="navbar-links">
+        {NAV_ITEMS.map(item => {
+          const isActive = activeView === item.key || (item.key === 'classes' && activeView === 'roster');
+          return (
+            <li key={item.key}>
+              <button
+                className={`navbar-link ${isActive ? 'active' : ''}`}
+                onClick={() => {
+                  if (item.key === 'classes') {
+                    onNavigate('classes', { resetSubject: true });
+                  } else {
+                    onNavigate(item.key);
+                  }
+                }}
+              >
+                <span className="nav-icon">{item.icon}</span>
+                <span>{item.label}</span>
+                {item.key === 'reports' && pendingCount > 0 && (
+                  <span className="navbar-badge">{pendingCount}</span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="navbar-user">
+        <span className="navbar-user-name">{fullName}</span>
+        <span className="navbar-role">Teacher</span>
+        <button className="navbar-logout" onClick={logout}>
+          Sign Out
+        </button>
+      </div>
+    </nav>
+  );
+}

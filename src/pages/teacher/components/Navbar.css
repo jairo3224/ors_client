@@ -1,0 +1,130 @@
+.navbar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1a3a5c;
+  padding: 0 24px;
+  height: 64px;
+  color: white;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.navbar-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.navbar-dept {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.45);
+  font-weight: 700;
+}
+
+.navbar-portal {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.navbar-links {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 4px;
+  align-items: center;
+}
+
+.navbar-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.navbar-link:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.navbar-link.active {
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-weight: 600;
+}
+
+.nav-icon {
+  font-size: 1rem;
+}
+
+.navbar-badge {
+  background: #ef4444;
+  color: white;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  margin-left: 2px;
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.navbar-user-name {
+  font-weight: 600;
+}
+
+.navbar-role {
+  color: rgba(255,255,255,0.45);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.navbar-logout {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: rgba(255,255,255,0.8);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.navbar-logout:hover {
+  background: rgba(255,255,255,0.25);
+}

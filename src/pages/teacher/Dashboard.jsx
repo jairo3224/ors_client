@@ -1,18 +1,113 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { incidentService } from '../../services/incidentService';
+import Navbar from './components/Navbar';
+import ClassesView from './components/ClassesView';
+import RosterView from './components/RosterView';
+import ReportView from './components/ReportView';
+import ReportsView from './components/ReportsView';
+import SearchView from './components/SearchView';
+import './Dashboard.css';
 
-export default function Dashboard() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  async function handleLogout() { await logout(); navigate('/login'); }
+const URGENCY_CONFIG = { /* … same as before … */ };
+const STATUS_CONFIG = { /* … same as before … */ };
+
+function getStatusCfg(status) {
+  return STATUS_CONFIG[status] ?? { bg: '#e3f2fd', color: '#1565c0', label: status };
+}
+
+function SuccessBanner({ onDismiss }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 4000);
+    return () => clearTimeout(t);
+  }, []);
   return (
-    <div style={{ minHeight: '100dvh', background: '#f0f4f8', padding: '32px', fontFamily: 'DM Sans, system-ui, sans-serif' }}>
-      <div style={{ maxWidth: 600, margin: '0 auto' }}>
-        <h1 style={{ color: '#1a3a5c' }}>{user?.role_name} Dashboard</h1>
-        <p style={{ color: '#64748b' }}>Welcome, {user?.first_name} {user?.last_name}!</p>
-        <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Department: {user?.department_name || 'Institution-wide'}</p>
-        <button onClick={handleLogout} style={{ marginTop: 24, padding: '10px 20px', background: '#1a3a5c', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Sign Out</button>
-      </div>
+    <div className="success-banner" onClick={onDismiss}>
+      ✓ Incident report submitted successfully.
+    </div>
+  );
+}
+
+export default function TeacherDashboard() {
+  const { user } = useAuth();
+  const [activeView, setActiveView] = useState('classes');
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [reportStudent, setReportStudent] = useState(null);
+  const [myIncidents, setMyIncidents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => { loadMyIncidents(); }, []);
+
+  const loadMyIncidents = async () => {
+    setLoading(true);
+    const incidents = await incidentService.getMyIncidents();
+    setMyIncidents(incidents);
+    setLoading(false);
+  };
+
+  const handleNavigate = (view, options = {}) => {
+    if (options.resetSubject) {
+      setSelectedSubject(null);
+      setActiveView('classes');
+    } else {
+      setActiveView(view);
+    }
+  };
+
+  const handleSelectSubject = (sub) => {
+    setSelectedSubject(sub);
+    setActiveView('roster');
+  };
+
+  const handleReportStudent = (student) => {
+    setReportStudent(student);
+    setActiveView('report');
+  };
+
+  const pendingCount = myIncidents.filter(i => i.current_status === 'reported').length;
+
+  return (
+    <div className="dashboard-body">
+      {showSuccess && <SuccessBanner onDismiss={() => setShowSuccess(false)} />}
+
+      <Navbar
+        activeView={activeView}
+        pendingCount={pendingCount}
+        onNavigate={handleNavigate}
+      />
+
+      <main className="main-content">
+        <div className="page-header">
+          <h1>
+            {activeView === 'classes' && '📚 My Classes'}
+            {activeView === 'roster' && '📚 Class Roster'}
+            {activeView === 'report' && '📝 Report Incident'}
+            {activeView === 'reports' && '📋 My Reports'}
+            {activeView === 'search' && '🔍 Student Lookup'}
+          </h1>
+          <div className="date">
+            {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
+        </div>
+
+        {/* Render sub-views – reuse the existing view components but now using className */}
+        {activeView === 'classes' && (
+          <ClassesView onSelectSubject={handleSelectSubject} />
+        )}
+        {activeView === 'roster' && selectedSubject && (
+          <RosterView subject={selectedSubject} onBack={() => setActiveView('classes')} onReportStudent={handleReportStudent} />
+        )}
+        {activeView === 'report' && (
+          <ReportView onSuccess={() => { setShowSuccess(true); loadMyIncidents(); setActiveView('reports'); }} initialStudent={reportStudent} />
+        )}
+        {activeView === 'reports' && (
+          <ReportsView incidents={myIncidents} loading={loading} />
+        )}
+        {activeView === 'search' && (
+          <SearchView />
+        )}
+      </main>
     </div>
   );
 }
