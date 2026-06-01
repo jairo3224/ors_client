@@ -21,6 +21,13 @@ import ReportsPage            from '../pages/chairperson/ReportsPage';
 import CasesPage              from '../pages/chairperson/CasesPage';
 import InboxPage              from '../pages/chairperson/InboxPage';
 
+// Teacher sub-pages
+import TeacherClassesPage     from '../pages/teacher/pages/ClassesPage';
+import TeacherRosterPage      from '../pages/teacher/pages/RosterPage';
+import TeacherReportPage      from '../pages/teacher/pages/ReportPage';
+import TeacherReportsPage     from '../pages/teacher/pages/ReportsPage';
+import TeacherSearchPage      from '../pages/teacher/pages/SearchPage';
+
 import UnauthorizedPage       from '../pages/auth/UnauthorizedPage';
 
 /**
@@ -107,13 +114,21 @@ export default function AppRouter() {
 
         {/* Teacher */}
         <Route
-          path="/teacher/*"
+          path="/teacher"
           element={
             <ProtectedRoute roles={[ROLES.TEACHER]}>
               <TeacherDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<Navigate to="classes" replace />} />
+          <Route path="classes" element={<TeacherClassesPage />} />
+          <Route path="roster/:classId" element={<TeacherRosterPage />} />
+          <Route path="report" element={<TeacherReportPage />} />
+          <Route path="report/:studentId" element={<TeacherReportPage />} />
+          <Route path="reports" element={<TeacherReportsPage />} />
+          <Route path="search" element={<TeacherSearchPage />} />
+        </Route>
 
         {/* 404 */}
         <Route path="*" element={<Navigate to="/" replace />} />
