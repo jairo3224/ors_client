@@ -6,8 +6,25 @@ const STATUS_CLASS = { pending: 'badge--pending', reviewed: 'badge--reviewed', f
                         open: 'badge--open', referred: 'badge--referred', closed: 'badge--closed' };
 const PRIORITY_CLASS = { low: 'priority--low', medium: 'priority--medium', high: 'priority--high' };
 
-function StatCard({ icon, label, value, sub, accent }) { /* same as before */ }
-function Avatar({ name }) { /* same */ }
+function StatCard({ icon, label, value, sub, accent }) {
+  return (
+    <div className="stat-card">
+      <div className="stat-card__icon" style={{ backgroundColor: accent + '22', color: accent }}>
+        {icon}
+      </div>
+      <div>
+        <div className="stat-card__value">{value}</div>
+        <div className="stat-card__label">{label}</div>
+        {sub && <div className="stat-card__sub" style={{ color: accent }}>{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+function Avatar({ name }) {
+  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  return <div className="avatar">{initials}</div>;
+}
 
 export default function OverviewPage() {
   const { students, reports, cases, user } = useOutletContext();

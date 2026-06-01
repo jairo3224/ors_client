@@ -97,6 +97,11 @@
   color: #fff;
 }
 
+.c-navbar__badge--info {
+  background: #3b82f6;
+  color: #fff;
+}
+
 .c-navbar__right {
   display: flex;
   align-items: center;
