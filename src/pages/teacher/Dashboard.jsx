@@ -1,42 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from '../../components/common/Footer';
 import { Outlet } from 'react-router-dom';
+import { useTeacherIncidents } from './hooks/useTeacherIncidents';
+import { incidentService } from '../../services/incidentService';
 import './components/Dashboard.css';
 
-// ─── MOCK DATA ────────────────────────────────────────────────────────
-const MOCK_INCIDENTS = [
-  { id: 1, student_name: 'Juan Dela Cruz', incident_type: 'Attendance Issue', urgency_level: 'Medium', current_status: 'reported', description: 'Student has been absent for 5 consecutive sessions in Data Structures class without any excuse letter.', date_reported: '2026-05-28' },
-  { id: 2, student_name: 'Maria Santos', incident_type: 'Cheating', urgency_level: 'High', current_status: 'reviewed', description: 'Caught copying code from an online source during the Web Development midterm exam. Source code matched published GitHub repository.', date_reported: '2026-05-25' },
-  { id: 3, student_name: 'Carlos Garcia', incident_type: 'Disrespectful Behavior', urgency_level: 'Low', current_status: 'pending', description: 'Used phone during lecture and refused to put it away when asked by the instructor.', date_reported: '2026-05-29' },
-  { id: 4, student_name: 'Anna Lopez', incident_type: 'Bullying', urgency_level: 'Critical', current_status: 'forwarded', description: 'Reported by classmates for repeatedly insulting and intimidating a freshman during group projects.', date_reported: '2026-05-22' },
-  { id: 5, student_name: 'Miguel Reyes', incident_type: 'Other', urgency_level: 'Low', current_status: 'dismissed', description: 'Submitted a lab exercise late due to a personal conflict. Issue was resolved after speaking with the student.', date_reported: '2026-05-20' },
-  { id: 6, student_name: 'Diego Tan', incident_type: 'Physical Altercation', urgency_level: 'High', current_status: 'reported', description: 'Involved in a shouting match with a classmate in the CS lab over computer station usage.', date_reported: '2026-05-30' },
-  { id: 7, student_name: 'Isabella Chua', incident_type: 'Attendance Issue', urgency_level: 'Low', current_status: 'resolved', description: 'Missed 3 lab sessions due to medical reasons. Presented a valid medical certificate and caught up with missed work.', date_reported: '2026-05-18' },
-];
-
 export default function TeacherDashboard() {
-  const { user } = useAuth();
   const location = useLocation();
-  const [myIncidents, setMyIncidents] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { incidents: myIncidents, pendingCount, loading, refetch: loadMyIncidents } = useTeacherIncidents();
   const [showSuccess, setShowSuccess] = useState(false);
-
-  useEffect(() => {
-    loadMyIncidents();
-  }, []);
-
-  const loadMyIncidents = async () => {
-    setLoading(true);
-    // Simulate API delay
-    await new Promise(r => setTimeout(r, 400));
-    setMyIncidents(MOCK_INCIDENTS);
-    setLoading(false);
-  };
-
-  const pendingCount = myIncidents.filter(i => i.current_status === 'reported').length;
+  const [forwardTarget, setForwardTarget] = useState(null);
 
   // Determine current page for navbar highlight
   const getCurrentView = () => {
@@ -61,16 +36,90 @@ export default function TeacherDashboard() {
       <main className="main-content">
         <Outlet context={{ 
           myIncidents, 
-          setMyIncidents, 
           loading, 
-          setLoading,
           loadMyIncidents,
           showSuccess,
-          setShowSuccess 
+          setShowSuccess,
+          setForwardTarget
         }} />
       </main>
 
+      <ForwardModal
+        item={forwardTarget}
+        onClose={() => setForwardTarget(null)}
+        onForwarded={() => loadMyIncidents()}
+      />
+
       <Footer />
+    </div>
+  );
+}
+
+function ForwardModal({ item, onClose, onForwarded }) {
+  const [destination, setDestination] = useState('');
+  const [note, setNote] = useState('');
+  const [forwarding, setForwarding] = useState(false);
+  const [error, setError] = useState(null);
+  if (!item) return null;
+
+  const handleForward = async () => {
+    if (!destination) return;
+    setForwarding(true);
+    setError(null);
+    try {
+      await incidentService.referIncident(item.id, destination, note.trim());
+      onForwarded?.();
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Failed to forward incident.');
+    } finally {
+      setForwarding(false);
+    }
+  };
+
+  return (
+    <div className="modal" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal__box">
+        <div className="modal__header">
+          <h3>Forward Report</h3>
+          <button className="modal__close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal__context">
+          <strong>{item.student_name || 'Unknown Student'}</strong> · {item.type_name}
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Forward to</label>
+          <div className="forward-options">
+            <button
+              className={`forward-option ${destination === 'OSAS' ? 'forward-option--selected' : ''}`}
+              onClick={() => setDestination('OSAS')}
+            >
+              OSAS
+            </button>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Referral Note (optional)</label>
+          <textarea
+            className="textarea"
+            placeholder="Add context or instructions..."
+            value={note}
+            onChange={e => setNote(e.target.value)}
+          />
+        </div>
+
+        {error && <div className="form-error">{error}</div>}
+
+        <div className="modal__actions">
+          <button className="btn btn--outline" onClick={onClose}>Cancel</button>
+          <button className="btn btn--warning" disabled={!destination || forwarding} onClick={handleForward}>
+            {forwarding ? 'Forwarding...' : 'Forward'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,19 +1,37 @@
+import authService from './authService';
+
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost/ors-backend/api';
 
 async function request(path, options = {}) {
-  const token = localStorage.getItem('access_token');
+  let token = localStorage.getItem('access_token');
 
-  const headers = {
+  const getHeaders = (t) => ({
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(t ? { Authorization: `Bearer ${t}` } : {}),
     ...options.headers,
-  };
+  });
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  let res = await fetch(`${BASE_URL}${path}`, {
     ...options,
-    headers,
+    headers: getHeaders(token),
     credentials: 'include',
   });
+
+  if (res.status === 401) {
+    try {
+      await authService.refresh();
+      token = localStorage.getItem('access_token');
+      res = await fetch(`${BASE_URL}${path}`, {
+        ...options,
+        headers: getHeaders(token),
+        credentials: 'include',
+      });
+    } catch {
+      localStorage.removeItem('access_token');
+      window.location.href = '/login';
+      throw new Error('Session expired. Please log in again.');
+    }
+  }
 
   const data = await res.json();
 
@@ -29,12 +47,12 @@ async function request(path, options = {}) {
 
 export const incidentService = {
   async getMyIncidents() {
-    const data = await request('/incidents/my');
+    const data = await request('/teacher/incidents');
     return data.data || [];
   },
 
   async createIncident(payload) {
-    const data = await request('/incidents', {
+    const data = await request('/teacher/incidents', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -43,6 +61,14 @@ export const incidentService = {
 
   async getIncident(id) {
     const data = await request(`/incidents/${id}`);
+    return data.data;
+  },
+
+  async referIncident(incidentId, destinationRole, remarks) {
+    const data = await request('/teacher/incidents/refer', {
+      method: 'POST',
+      body: JSON.stringify({ incident_id: incidentId, destination_role: destinationRole, remarks }),
+    });
     return data.data;
   },
 };

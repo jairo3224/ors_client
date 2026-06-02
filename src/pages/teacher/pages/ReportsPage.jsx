@@ -7,7 +7,7 @@ function Avatar({ name }) {
 
 export default function ReportsPage() {
   const context = useOutletContext();
-  const { myIncidents = [], loading = false } = context || {};
+  const { myIncidents = [], loading = false, setForwardTarget } = context || {};
 
   if (loading) {
     return (
@@ -42,17 +42,23 @@ export default function ReportsPage() {
   }
 
   function severityClass(level) {
-    const map = { Low: 'badge-low', Medium: 'badge-moderate', High: 'badge-high', Critical: 'badge-critical' };
+    const map = { low: 'badge-low', medium: 'badge-moderate', high: 'badge-high', critical: 'badge-critical' };
     return map[level] || 'badge-low';
   }
 
+  function severityLabel(level) {
+    const labels = { low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' };
+    return labels[level] || level;
+  }
+
   function statusClass(status) {
-    const map = { reported: 'badge-reported', pending: 'badge-pending', reviewed: 'badge-reviewed', resolved: 'badge-resolved', dismissed: 'badge-dismissed', forwarded: 'badge-forwarded' };
+    const map = { reported: 'badge-reported', under_review: 'badge-reviewed', referred: 'badge-forwarded', in_progress: 'badge-pending', resolved: 'badge-resolved', closed: 'badge-dismissed' };
     return map[status] || 'badge-pending';
   }
 
   function statusLabel(status) {
-    return status.charAt(0).toUpperCase() + status.slice(1);
+    const labels = { reported: 'Reported', under_review: 'Under Review', referred: 'Referred', in_progress: 'In Progress', resolved: 'Resolved', closed: 'Closed' };
+    return labels[status] || status.charAt(0).toUpperCase() + status.slice(1);
   }
 
   return (
@@ -66,7 +72,7 @@ export default function ReportsPage() {
 
       <div className="reports-view">
         <div className="reports-list">
-          {myIncidents.map(incident => (
+          {Array.isArray(myIncidents) && myIncidents.map(incident => (
             <div key={incident.id} className="report-card card">
               <div className="report-top">
                 <div className="report-student">
@@ -76,15 +82,15 @@ export default function ReportsPage() {
                       {incident.student_name || 'Unknown Student'}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                      {incident.incident_type} · {incident.urgency_level} urgency
+                      {incident.type_name} · {incident.urgency_level} urgency
                     </div>
                   </div>
                 </div>
                 <div className="report-meta">
-                  <span className={`badge ${severityClass(incident.urgency_level)}`}>{incident.urgency_level}</span>
+                  <span className={`badge ${severityClass(incident.urgency_level)}`}>{severityLabel(incident.urgency_level)}</span>
                   <span className={`badge ${statusClass(incident.current_status)}`}>{statusLabel(incident.current_status)}</span>
                   <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: 4 }}>
-                    {new Date(incident.date_reported).toLocaleDateString()}
+                    {new Date(incident.created_at).toLocaleDateString()}
                   </span>
                 </div>
               </div>
@@ -93,7 +99,7 @@ export default function ReportsPage() {
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {incident.current_status === 'reported' && (
-                  <button className="btn btn--sm btn--warning">Forward</button>
+                  <button className="btn btn--sm btn--warning" onClick={() => setForwardTarget?.(incident)}>Forward</button>
                 )}
               </div>
             </div>

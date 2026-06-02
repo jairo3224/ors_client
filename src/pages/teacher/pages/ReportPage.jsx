@@ -1,35 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom';
 import { incidentService } from '../../../services/incidentService';
+import { teacherService } from '../../../services/teacherService';
 
 const INCIDENT_TYPES = [
-  'Disrespectful Behavior',
-  'Physical Altercation',
-  'Attendance Issue',
-  'Cheating',
-  'Bullying',
-  'Other',
+  { id: 5, name: 'Disrespectful Behavior' },
+  { id: 4, name: 'Physical Altercation' },
+  { id: 3, name: 'Attendance Issue' },
+  { id: 2, name: 'Cheating' },
+  { id: 1, name: 'Bullying' },
 ];
 
 const URGENCY_LEVELS = ['Low', 'Medium', 'High', 'Critical'];
 
-const ALL_STUDENTS = [
-  { id: 1, name: 'Juan Dela Cruz', studentId: 'STU001' },
-  { id: 2, name: 'Maria Santos', studentId: 'STU002' },
-  { id: 3, name: 'Carlos Garcia', studentId: 'STU003' },
-  { id: 4, name: 'Anna Lopez', studentId: 'STU004' },
-  { id: 5, name: 'Miguel Reyes', studentId: 'STU005' },
-  { id: 6, name: 'Sofia Mendoza', studentId: 'STU006' },
-  { id: 7, name: 'Diego Tan', studentId: 'STU007' },
-  { id: 8, name: 'Isabella Chua', studentId: 'STU008' },
-  { id: 9, name: 'Rafael Villanueva', studentId: 'STU009' },
-  { id: 10, name: 'Gabriella Ramos', studentId: 'STU010' },
-  { id: 11, name: 'Luis Mercado', studentId: 'STU011' },
-  { id: 12, name: 'Angela Cruz', studentId: 'STU012' },
-  { id: 13, name: 'Mateo Del Rosario', studentId: 'STU013' },
-  { id: 14, name: 'Julia Ferrer', studentId: 'STU014' },
-  { id: 15, name: 'Kyle Santiago', studentId: 'STU015' },
-];
+
 
 export default function ReportPage() {
   const { studentId } = useParams();
@@ -40,23 +24,19 @@ export default function ReportPage() {
   const { setShowSuccess, loadMyIncidents } = context || {};
 
   const [studentQuery, setStudentQuery] = useState('');
-  const [incidentType, setIncidentType] = useState('Disrespectful Behavior');
+  const [incidentType, setIncidentType] = useState('5');
   const [urgencyLevel, setUrgencyLevel] = useState('Low');
   const [description, setDescription] = useState('');
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    // Get student from URL params or from location state
     if (location.state?.student) {
-      setStudentQuery(`${location.state.student.name} (${location.state.student.studentId})`);
-    } else if (studentId) {
-      const student = ALL_STUDENTS.find(s => s.studentId === studentId);
-      if (student) {
-        setStudentQuery(`${student.name} (${student.studentId})`);
-      }
+      const s = location.state.student;
+      setStudentQuery(`${s.first_name ?? s.name} (${s.student_number ?? s.studentId})`);
     }
-  }, [studentId, location.state?.student]);
+  }, [location.state?.student]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -74,21 +54,33 @@ export default function ReportPage() {
     setSubmitting(true);
 
     try {
+      const res = await teacherService.searchStudents(studentQuery.trim());
+      const students = res.data?.students ?? [];
+      if (students.length === 0) {
+        throw new Error('No student found matching that name or ID.');
+      }
+
       await incidentService.createIncident({
-        student_query: studentQuery.trim(),
-        incident_type: incidentType,
-        urgency_level: urgencyLevel,
+        student_id: students[0].id,
+        incident_type_id: parseInt(incidentType, 10) || null,
+        urgency_level: urgencyLevel.toLowerCase(),
         description: description.trim(),
       });
+      setSuccess(true);
       setStudentQuery('');
-      setIncidentType('Disrespectful Behavior');
+      setIncidentType('5');
       setUrgencyLevel('Low');
       setDescription('');
-      setShowSuccess?.(true);
       loadMyIncidents?.();
-      navigate('/teacher/reports');
+      setShowSuccess?.(true);
     } catch (err) {
-      setError(err.message || 'Unable to submit report.');
+      const messages = [];
+      if (err.errors) {
+        for (const field of Object.values(err.errors)) {
+          messages.push(field);
+        }
+      }
+      setError(messages.length ? messages.join('. ') : (err.message || 'Unable to submit report.'));
     } finally {
       setSubmitting(false);
     }
@@ -105,71 +97,84 @@ export default function ReportPage() {
 
       <div className="report-view">
         <div className="card report-form">
-          <h2>Report Incident</h2>
-
-          <form onSubmit={handleSubmit}>
-            <div className="form-grid">
-              <div className="form-group">
-                <label className="label" htmlFor="studentQuery">Student *</label>
-                <input
-                  id="studentQuery"
-                  type="text"
-                  className="input"
-                  value={studentQuery}
-                  onChange={(e) => setStudentQuery(e.target.value)}
-                  placeholder="Enter student name or student ID"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="label" htmlFor="incidentType">Incident type *</label>
-                <select
-                  id="incidentType"
-                  className="select"
-                  value={incidentType}
-                  onChange={(e) => setIncidentType(e.target.value)}
-                >
-                  {INCIDENT_TYPES.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="label" htmlFor="urgencyLevel">Urgency level *</label>
-                <select
-                  id="urgencyLevel"
-                  className="select"
-                  value={urgencyLevel}
-                  onChange={(e) => setUrgencyLevel(e.target.value)}
-                >
-                  {URGENCY_LEVELS.map(level => (
-                    <option key={level} value={level}>{level}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="label" htmlFor="description">Description *</label>
-              <textarea
-                id="description"
-                className="textarea"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe the incident in detail..."
-                rows="6"
-              />
-            </div>
-
-            {error && <div className="form-error">{error}</div>}
-
-            <div className="form-actions">
-              <button type="submit" className="btn-primary" disabled={submitting}>
-                {submitting ? 'Submitting...' : 'Submit Report'}
+          {success ? (
+            <div className="success-state">
+              <div className="success-icon">✓</div>
+              <h2>Incident Report Submitted</h2>
+              <p>Your report has been submitted successfully.</p>
+              <button className="btn-primary" onClick={() => navigate('/teacher/reports')} style={{ marginTop: 20 }}>
+                View My Reports
               </button>
             </div>
-          </form>
+          ) : (
+            <>
+              <h2>Report Incident</h2>
+
+              <form onSubmit={handleSubmit}>
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="label" htmlFor="studentQuery">Student *</label>
+                    <input
+                      id="studentQuery"
+                      type="text"
+                      className="input"
+                      value={studentQuery}
+                      onChange={(e) => setStudentQuery(e.target.value)}
+                      placeholder="Enter student name or student ID"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="label" htmlFor="incidentType">Incident type *</label>
+                    <select
+                      id="incidentType"
+                      className="select"
+                      value={incidentType}
+                      onChange={(e) => setIncidentType(e.target.value)}
+                    >
+                      {INCIDENT_TYPES.map(({ id, name }) => (
+                        <option key={id} value={id}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="label" htmlFor="urgencyLevel">Urgency level *</label>
+                    <select
+                      id="urgencyLevel"
+                      className="select"
+                      value={urgencyLevel}
+                      onChange={(e) => setUrgencyLevel(e.target.value)}
+                    >
+                      {URGENCY_LEVELS.map(level => (
+                        <option key={level} value={level}>{level}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="label" htmlFor="description">Description *</label>
+                  <textarea
+                    id="description"
+                    className="textarea"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe the incident in detail..."
+                    rows="6"
+                  />
+                </div>
+
+                {error && <div className="form-error">{error}</div>}
+
+                <div className="form-actions">
+                  <button type="submit" className="btn-primary" disabled={submitting}>
+                    {submitting ? 'Submitting...' : 'Submit Report'}
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
         </div>
       </div>
     </div>
