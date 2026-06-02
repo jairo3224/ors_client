@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, X, Edit3, Trash2, AlertCircle, Users } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 const MOCK_MEETINGS = [
   { id: 1, title: 'Student Case Conference - Juan dela Cruz', date: '2026-06-03', time: '10:00', type: 'Case Conference', status: 'Scheduled', participants: 'Guidance, OSAS, Dept Head', notes: 'Discuss behavioral intervention plan.', outcome: '' },
@@ -11,17 +11,104 @@ const BLANK_FORM = { title: '', date: '', time: '', type: 'Case Conference', sta
 const TYPE_OPTIONS = ['Case Conference', 'Parent Meeting', 'Review', 'Disciplinary Hearing', 'Planning Session'];
 const STATUS_OPTIONS = ['Scheduled', 'Completed', 'Cancelled', 'Rescheduled'];
 
+const STATUS_CLASS = {
+  Completed: 'badge--closed',
+  Scheduled: 'badge--open',
+  Cancelled: 'badge--high',
+  Rescheduled: 'badge--pending',
+};
+
+const TYPE_COLORS = {
+  'Case Conference': { bg: '#dbeafe', color: '#1d4ed8' },
+  'Parent Meeting': { bg: '#dcfce7', color: '#16a34a' },
+  'Review': { bg: '#f3e8ff', color: '#9333ea' },
+  'Disciplinary Hearing': { bg: '#fce4ec', color: '#c62828' },
+};
+
 function Modal({ title, onClose, children }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-800 text-base">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={18} /></button>
+    <div className="modal" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal__box">
+        <div className="modal__header">
+          <h3>{title}</h3>
+          <button className="modal__close" onClick={onClose}>✕</button>
         </div>
-        <div className="p-5">{children}</div>
+        <div style={{ padding: '0 0 8px' }}>{children}</div>
       </div>
     </div>
+  );
+}
+
+function MeetingFormModal({ initial, onClose, onSave }) {
+  const [form, setForm] = useState(initial ?? BLANK_FORM);
+  const [err, setErr] = useState('');
+
+  function set(key, val) { setForm(f => ({ ...f, [key]: val })); }
+
+  function handleSubmit() {
+    if (!form.title.trim() || !form.date) {
+      setErr('Title and date are required.'); return;
+    }
+    onSave(form);
+  }
+
+  return (
+    <Modal title={initial ? 'Edit Meeting' : 'Schedule Meeting'} onClose={onClose}>
+      {err && <div className="form-error" style={{ marginBottom: 12 }}>{err}</div>}
+      <div className="form-group">
+        <label className="form-label">Meeting Title *</label>
+        <input value={form.title} onChange={e => set('title', e.target.value)}
+          className="input" style={{ maxWidth: '100%', width: '100%' }} placeholder="e.g., Case Conference - Student Name" />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="form-group">
+          <label className="form-label">Date *</label>
+          <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
+            className="input" style={{ maxWidth: '100%', width: '100%' }} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Time</label>
+          <input type="time" value={form.time} onChange={e => set('time', e.target.value)}
+            className="input" style={{ maxWidth: '100%', width: '100%' }} />
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="form-group">
+          <label className="form-label">Type</label>
+          <select value={form.type} onChange={e => set('type', e.target.value)}
+            className="select" style={{ width: '100%' }}>
+            {TYPE_OPTIONS.map(o => <option key={o}>{o}</option>)}
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Status</label>
+          <select value={form.status} onChange={e => set('status', e.target.value)}
+            className="select" style={{ width: '100%' }}>
+            {STATUS_OPTIONS.map(o => <option key={o}>{o}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Participants</label>
+        <input value={form.participants} onChange={e => set('participants', e.target.value)}
+          className="input" style={{ maxWidth: '100%', width: '100%' }}
+          placeholder="e.g., Guidance, OSAS, Teacher, Parent" />
+      </div>
+      <div className="form-group">
+        <label className="form-label">Meeting Notes / Agenda</label>
+        <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={3}
+          className="textarea" placeholder="Document agenda, discussion points, and decisions..." />
+      </div>
+      <div className="form-group">
+        <label className="form-label">Outcome / Resolution</label>
+        <textarea value={form.outcome} onChange={e => set('outcome', e.target.value)} rows={2}
+          className="textarea" placeholder="Document the outcome or resolution reached..." />
+      </div>
+      <div className="modal__actions">
+        <button className="btn btn--outline" onClick={onClose}>Cancel</button>
+        <button className="btn" onClick={handleSubmit}>{initial ? 'Save Changes' : 'Schedule Meeting'}</button>
+      </div>
+    </Modal>
   );
 }
 
@@ -52,81 +139,71 @@ export default function GuidanceMeetingsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       <div className="page-header">
         <h1 className="page-title">Case Meetings</h1>
         <p className="page-subtitle">Schedule and document case meetings, conferences, and reviews</p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-3 flex flex-wrap gap-2 items-center">
-        <div className="relative flex-1 min-w-[160px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search meetings…"
-            className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200" />
-        </div>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+      <div className="filters">
+        <input
+          className="input"
+          placeholder="Search meetings..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <select className="select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
           <option value="">All statuses</option>
           {STATUS_OPTIONS.map(o => <option key={o}>{o}</option>)}
         </select>
-        <button onClick={() => setModal({ type: 'form', data: null })}
-          style={{ background: '#4a7c8a' }}
-          className="ml-auto flex items-center gap-2 px-4 py-2 text-sm text-white rounded-lg hover:opacity-90 transition-opacity">
-          <Plus size={15} /> Schedule Meeting
+        <button className="btn" style={{ marginLeft: 'auto' }} onClick={() => setModal({ type: 'form', data: null })}>
+          <Plus size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Schedule Meeting
         </button>
       </div>
 
-      <div className="space-y-3">
-        {filtered.length === 0 && (
-          <div className="text-center py-12 text-gray-400">
-            <Users size={40} className="mx-auto mb-2 text-gray-300" />
-            <p className="text-sm">No meetings scheduled.</p>
-          </div>
-        )}
-        {filtered.map(meeting => (
-          <div key={meeting.id} className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-sm transition-shadow">
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-bold ${
-                  meeting.type === 'Case Conference' ? 'bg-blue-500' :
-                  meeting.type === 'Parent Meeting' ? 'bg-green-500' :
-                  meeting.type === 'Review' ? 'bg-purple-500' :
-                  meeting.type === 'Disciplinary Hearing' ? 'bg-red-500' : 'bg-gray-500'
-                }`}>
-                  <Users size={18} />
+      <div>
+        {filtered.length === 0 && <div className="empty-state">No meetings scheduled.</div>}
+        {filtered.map(meeting => {
+          const typeColor = TYPE_COLORS[meeting.type] || { bg: '#f5f5f5', color: '#757575' };
+          return (
+            <div key={meeting.id} className="card" style={{ padding: '18px 22px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 8,
+                    background: typeColor.bg, color: typeColor.color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 16, fontWeight: 700, flexShrink: 0
+                  }}>
+                    📅
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, color: '#1a3a5c', fontWeight: 700, fontSize: '0.95rem' }}>{meeting.title}</h4>
+                    <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: '0.78rem' }}>{meeting.date} at {meeting.time} · {meeting.type}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-800">{meeting.title}</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">{meeting.date} at {meeting.time} &middot; {meeting.type}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className={`badge ${STATUS_CLASS[meeting.status] || ''}`}>{meeting.status}</span>
+                  <button className="btn btn--sm btn--outline" onClick={() => setModal({ type: 'form', data: meeting })}>Edit</button>
+                  <button className="btn btn--sm btn--danger" onClick={() => handleDelete(meeting.id)}>Delete</button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                  meeting.status === 'Completed' ? 'bg-green-100 text-green-700' :
-                  meeting.status === 'Scheduled' ? 'bg-blue-100 text-blue-700' :
-                  meeting.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
-                  'bg-amber-100 text-amber-700'
-                }`}>{meeting.status}</span>
-                <button onClick={() => setModal({ type: 'form', data: meeting })}
-                  className="p-1.5 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors" title="Edit">
-                  <Edit3 size={14} />
-                </button>
-                <button onClick={() => handleDelete(meeting.id)}
-                  className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-            <div className="text-sm text-gray-500 mb-2">Participants: {meeting.participants}</div>
-            {meeting.notes && <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 mb-2">{meeting.notes}</p>}
-            {meeting.outcome && (
-              <p className="text-sm font-medium text-green-700 bg-green-50 rounded-lg p-3">
-                <span className="font-semibold">Outcome:</span> {meeting.outcome}
+              <p style={{ fontSize: '0.83rem', color: '#64748b', margin: '0 0 8px', paddingLeft: 52 }}>
+                Participants: {meeting.participants}
               </p>
-            )}
-          </div>
-        ))}
+              {meeting.notes && (
+                <p style={{ fontSize: '0.83rem', color: '#334155', background: '#f7f9fc', borderRadius: 8, padding: '8px 12px', margin: '0 0 8px' }}>
+                  {meeting.notes}
+                </p>
+              )}
+              {meeting.outcome && (
+                <p style={{ fontSize: '0.83rem', color: '#2e7d32', background: '#e8f5e9', borderRadius: 8, padding: '8px 12px', margin: 0 }}>
+                  <strong>Outcome:</strong> {meeting.outcome}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {modal?.type === 'form' && (
@@ -137,86 +214,5 @@ export default function GuidanceMeetingsPage() {
         />
       )}
     </div>
-  );
-}
-
-function MeetingFormModal({ initial, onClose, onSave }) {
-  const [form, setForm] = useState(initial ?? BLANK_FORM);
-  const [err, setErr] = useState('');
-
-  function set(key, val) { setForm(f => ({ ...f, [key]: val })); }
-
-  function handleSubmit() {
-    if (!form.title.trim() || !form.date) {
-      setErr('Title and date are required.'); return;
-    }
-    onSave(form);
-  }
-
-  return (
-    <Modal title={initial ? 'Edit Meeting' : 'Schedule Meeting'} onClose={onClose}>
-      {err && <p className="text-red-600 text-xs mb-3 flex items-center gap-1"><AlertCircle size={13}/>{err}</p>}
-      <div className="space-y-3 text-sm">
-        <div>
-          <label className="block text-gray-600 mb-1">Meeting Title *</label>
-          <input value={form.title} onChange={e => set('title', e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="e.g., Case Conference - Student Name" />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-gray-600 mb-1">Date *</label>
-            <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200" />
-          </div>
-          <div>
-            <label className="block text-gray-600 mb-1">Time</label>
-            <input type="time" value={form.time} onChange={e => set('time', e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200" />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-gray-600 mb-1">Type</label>
-            <select value={form.type} onChange={e => set('type', e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200">
-              {TYPE_OPTIONS.map(o => <option key={o}>{o}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-gray-600 mb-1">Status</label>
-            <select value={form.status} onChange={e => set('status', e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200">
-              {STATUS_OPTIONS.map(o => <option key={o}>{o}</option>)}
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="block text-gray-600 mb-1">Participants</label>
-          <input value={form.participants} onChange={e => set('participants', e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200"
-            placeholder="e.g., Guidance, OSAS, Teacher, Parent" />
-        </div>
-        <div>
-          <label className="block text-gray-600 mb-1">Meeting Notes / Agenda</label>
-          <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={3}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
-            placeholder="Document agenda, discussion points, and decisions…" />
-        </div>
-        <div>
-          <label className="block text-gray-600 mb-1">Outcome / Resolution</label>
-          <textarea value={form.outcome} onChange={e => set('outcome', e.target.value)} rows={2}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
-            placeholder="Document the outcome or resolution reached…" />
-        </div>
-      </div>
-      <div className="mt-5 flex justify-end gap-2">
-        <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
-        <button onClick={handleSubmit}
-          style={{ background: '#4a7c8a' }}
-          className="px-4 py-2 text-sm text-white rounded-lg hover:opacity-90 transition-opacity">
-          {initial ? 'Save Changes' : 'Schedule Meeting'}
-        </button>
-      </div>
-    </Modal>
   );
 }

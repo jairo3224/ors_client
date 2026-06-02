@@ -57,7 +57,7 @@ export default function SearchView() {
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by student name or ID..."
             />
-            <button type="submit" className="btn-primary">Search</button>
+            <button type="submit" className="btn">Search</button>
           </div>
         </form>
       </div>

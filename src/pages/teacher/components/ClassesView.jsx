@@ -23,11 +23,11 @@ export default function ClassesView({ onSelectSubject }) {
         {classes.map(cls => (
           <div key={cls.id} className="class-card card" style={{ padding: '22px 24px' }}>
             <div style={{ fontSize: 28, marginBottom: 8 }}>{icons[cls.subject] || '📚'}</div>
-            <h3 className="card-title">{cls.subject} — {cls.name}</h3>
+            <h3 className="card__title">{cls.subject} — {cls.name}</h3>
             <p className="card-subtitle">Period {cls.period}</p>
             <div className="card-footer">
               <button 
-                className="btn-primary"
+                className="btn"
                 onClick={() => onSelectSubject(cls)}
               >
                 View Roster

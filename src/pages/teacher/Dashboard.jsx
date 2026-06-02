@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import Navbar from './components/Navbar';
 import ClassesView from './components/ClassesView';
 import RosterView from './components/RosterView';
@@ -24,7 +23,7 @@ function SuccessBanner({ onDismiss }) {
   useEffect(() => {
     const t = setTimeout(onDismiss, 4000);
     return () => clearTimeout(t);
-  }, []);
+  }, [onDismiss]);
   return (
     <div className="success-banner" onClick={onDismiss}>
       ✓ Incident report submitted successfully.
@@ -33,23 +32,11 @@ function SuccessBanner({ onDismiss }) {
 }
 
 export default function TeacherDashboard() {
-  const { user } = useAuth();
   const [activeView, setActiveView] = useState('classes');
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [reportStudent, setReportStudent] = useState(null);
-  const [myIncidents, setMyIncidents] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [myIncidents, setMyIncidents] = useState(MOCK_INCIDENTS);
   const [showSuccess, setShowSuccess] = useState(false);
-
-  useEffect(() => { loadMyIncidents(); }, []);
-
-  const loadMyIncidents = async () => {
-    setLoading(true);
-    // Simulate API delay
-    await new Promise(r => setTimeout(r, 400));
-    setMyIncidents(MOCK_INCIDENTS);
-    setLoading(false);
-  };
 
   const handleNavigate = (view, options = {}) => {
     if (options.resetSubject) {
@@ -73,7 +60,7 @@ export default function TeacherDashboard() {
   const pendingCount = myIncidents.filter(i => i.current_status === 'reported').length;
 
   return (
-    <div className="dashboard-body">
+    <div className="dashboard">
       {showSuccess && <SuccessBanner onDismiss={() => setShowSuccess(false)} />}
 
       <Navbar
@@ -84,16 +71,16 @@ export default function TeacherDashboard() {
 
       <main className="main-content">
         <div className="page-header">
-          <h1>
+          <h1 className="page-title">
             {activeView === 'classes' && '📚 My Classes'}
             {activeView === 'roster' && '📚 Class Roster'}
             {activeView === 'report' && '📝 Report Incident'}
             {activeView === 'reports' && '📋 My Reports'}
             {activeView === 'search' && '🔍 Student Lookup'}
           </h1>
-          <div className="date">
+          <p className="page-subtitle">
             {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </div>
+          </p>
         </div>
 
         {/* Render sub-views – reuse the existing view components but now using className */}
@@ -104,10 +91,10 @@ export default function TeacherDashboard() {
           <RosterView subject={selectedSubject} onBack={() => setActiveView('classes')} onReportStudent={handleReportStudent} />
         )}
         {activeView === 'report' && (
-          <ReportView onSuccess={() => { setShowSuccess(true); loadMyIncidents(); setActiveView('reports'); }} initialStudent={reportStudent} />
+          <ReportView onSuccess={() => { setShowSuccess(true); setMyIncidents(MOCK_INCIDENTS); setActiveView('reports'); }} initialStudent={reportStudent} />
         )}
         {activeView === 'reports' && (
-          <ReportsView incidents={myIncidents} loading={loading} />
+          <ReportsView incidents={myIncidents} />
         )}
         {activeView === 'search' && (
           <SearchView />

@@ -1,15 +1,10 @@
 import { useState } from 'react';
-import { Search, X, Eye } from 'lucide-react';
 
 const URGENCY_OPTIONS = ['Low', 'Moderate', 'Urgent'];
 const STATUS_OPTIONS  = ['Open', 'In Progress', 'Resolved'];
 
-const URGENCY_STYLE = {
-  Urgent:   { bg: '#fcebeb', color: '#a32d2d' },
-  Moderate: { bg: '#faeeda', color: '#854f0b' },
-  Low:      { bg: '#eaf3de', color: '#3b6d11' },
-};
-const STATUS_COLOR = { Open: '#e24b4a', 'In Progress': '#ef9f27', Resolved: '#639922' };
+const URGENCY_BADGE = { Urgent: 'badge--high', Moderate: 'badge--moderate', Low: 'badge--low' };
+const STATUS_BADGE = { Open: 'badge--open', 'In Progress': 'badge--pending', Resolved: 'badge--closed' };
 
 const MOCK = [
   { id: 1, student_name: 'Juan dela Cruz',  referred_by: 'Ms. Reyes',  urgency: 'Urgent',   routed_to: 'Guidance Office', status: 'Open',        date: '2026-05-28', description: 'Behavioral concerns in class. Student shows signs of aggression towards classmates.', notes: '' },
@@ -18,20 +13,6 @@ const MOCK = [
   { id: 4, student_name: 'Ana Flores',      referred_by: 'Mr. Lim',    urgency: 'Urgent',   routed_to: 'Guidance Office', status: 'Open',        date: '2026-05-30', description: 'Family concerns affecting studies. Student distracted and withdrawn.', notes: '' },
   { id: 5, student_name: 'Paolo Reyes',     referred_by: 'Ms. Cruz',   urgency: 'Moderate', routed_to: 'Guidance Office', status: 'In Progress', date: '2026-05-27', description: 'Career guidance consultation. Student unsure about course selection.', notes: 'Assessment completed. Discussed career options aligned with interests.' },
 ];
-
-function Modal({ title, onClose, children }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-800 text-base">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={18} /></button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
-  );
-}
 
 function ViewModal({ referral, onClose, onStatusChange, onAddNote }) {
   const [status, setStatus] = useState(referral.status);
@@ -49,67 +30,57 @@ function ViewModal({ referral, onClose, onStatusChange, onAddNote }) {
   }
 
   return (
-    <Modal title="Referral Details" onClose={onClose}>
-      <dl className="space-y-3 text-sm">
-        {[
-          ['Student', referral.student_name],
-          ['Referred by', referral.referred_by],
-          ['Date', referral.date],
-          ['Routed to', referral.routed_to],
-        ].map(([label, val]) => (
-          <div key={label} className="flex gap-2">
-            <dt className="text-gray-500 w-28 shrink-0">{label}</dt>
-            <dd className={`font-medium ${val ? 'text-gray-800' : 'text-gray-300'}`}>{val || '—'}</dd>
-          </div>
-        ))}
-        <div className="flex gap-2 items-center">
-          <dt className="text-gray-500 w-28 shrink-0">Urgency</dt>
-          <dd><span style={{ ...URGENCY_STYLE[referral.urgency], padding: '2px 10px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{referral.urgency}</span></dd>
+    <div className="modal" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal__box">
+        <div className="modal__header">
+          <h3>Referral Details</h3>
+          <button className="modal__close" onClick={onClose}>✕</button>
         </div>
-        <div className="flex gap-2">
-          <dt className="text-gray-500 w-28 shrink-0">Description</dt>
-          <dd className="font-medium text-gray-800">{referral.description || '—'}</dd>
-        </div>
-        {referral.notes && (
-          <div className="flex gap-2">
-            <dt className="text-gray-500 w-28 shrink-0">Counseling Notes</dt>
-            <dd className="font-medium text-gray-800">{referral.notes}</dd>
-          </div>
-        )}
-        <div className="flex gap-2 items-center">
-          <dt className="text-gray-500 w-28 shrink-0">Status</dt>
-          <dd>
+
+        <div className="modal__details" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20, fontSize: '0.85rem' }}>
+          <div className="modal__field"><span className="modal__label">Student</span><span className="modal__value">{referral.student_name}</span></div>
+          <div className="modal__field"><span className="modal__label">Referred by</span><span className="modal__value">{referral.referred_by}</span></div>
+          <div className="modal__field"><span className="modal__label">Date</span><span className="modal__value">{referral.date}</span></div>
+          <div className="modal__field"><span className="modal__label">Routed to</span><span className="modal__value">{referral.routed_to}</span></div>
+          <div className="modal__field"><span className="modal__label">Urgency</span><span className={`badge ${URGENCY_BADGE[referral.urgency] || ''}`}>{referral.urgency}</span></div>
+          <div className="modal__field"><span className="modal__label">Status</span>
             <select value={status} onChange={e => setStatus(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+              className="select" style={{ maxWidth: '100%', marginTop: 4 }}>
               {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
             </select>
-          </dd>
+          </div>
         </div>
-      </dl>
 
-      <div className="mt-4 pt-4 border-t border-gray-100">
-        <label className="block text-sm font-medium text-gray-600 mb-2">Add Counseling Note</label>
-        <div className="flex gap-2">
-          <textarea value={noteText} onChange={e => setNoteText(e.target.value)} rows={2}
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
-            placeholder="Document your session notes..." />
-          <button onClick={handleAddNote} disabled={!noteText.trim()}
-            style={{ background: '#4a7c8a' }}
-            className="px-3 py-2 text-sm text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 self-end">
-            Add
-          </button>
+        <div className="modal__context" style={{ background: '#f7f9fc', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: '0.83rem', color: '#334155' }}>
+          {referral.description || '—'}
+        </div>
+
+        {referral.notes && (
+          <div style={{ background: '#f0f7ff', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: '0.83rem' }}>
+            <strong style={{ color: '#1565c0' }}>Counseling Notes</strong>
+            <p style={{ margin: '4px 0 0', color: '#1a3a5c' }}>{referral.notes}</p>
+          </div>
+        )}
+
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #e8edf2' }}>
+          <label className="form-label">Add Counseling Note</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <textarea value={noteText} onChange={e => setNoteText(e.target.value)} rows={2}
+              className="textarea" style={{ minHeight: 60, flex: 1 }}
+              placeholder="Document your session notes..." />
+            <button onClick={handleAddNote} disabled={!noteText.trim()}
+              className="btn btn--sm" style={{ alignSelf: 'flex-end' }}>
+              Add
+            </button>
+          </div>
+        </div>
+
+        <div className="modal__actions">
+          <button className="btn btn--outline" onClick={onClose}>Cancel</button>
+          <button className="btn" onClick={handleStatusSave}>Update Status</button>
         </div>
       </div>
-
-      <div className="mt-5 flex justify-end gap-2">
-        <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
-        <button onClick={handleStatusSave}
-          style={{ background: '#4a7c8a' }}
-          className="px-4 py-2 text-sm text-white rounded-lg hover:opacity-90 transition-opacity">
-          Update Status
-        </button>
-      </div>
-    </Modal>
+    </div>
   );
 }
 
@@ -139,75 +110,61 @@ export default function GuidanceReferralsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       <div className="page-header">
         <h1 className="page-title">Referrals</h1>
         <p className="page-subtitle">Manage referrals assigned to Guidance Office</p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-3 flex flex-wrap gap-2 items-center">
-        <div className="relative flex-1 min-w-[160px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by student or referrer…"
-            className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200" />
-        </div>
-        <select value={filterUrgency} onChange={e => setFilterUrgency(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+      <div className="filters">
+        <input
+          className="input"
+          placeholder="Search by student or referrer..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <select className="select" value={filterUrgency} onChange={e => setFilterUrgency(e.target.value)}>
           <option value="">All urgencies</option>
           {URGENCY_OPTIONS.map(o => <option key={o}>{o}</option>)}
         </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+        <select className="select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
           <option value="">All statuses</option>
           {STATUS_OPTIONS.map(o => <option key={o}>{o}</option>)}
         </select>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide border-b border-gray-100">
-                <th className="text-left px-4 py-2 font-medium">Student</th>
-                <th className="text-left px-4 py-2 font-medium">Referred by</th>
-                <th className="text-left px-4 py-2 font-medium">Urgency</th>
-                <th className="text-left px-4 py-2 font-medium">Status</th>
-                <th className="text-left px-4 py-2 font-medium">Date</th>
-                <th className="px-4 py-2 font-medium"></th>
+      <div className="card table-card">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Referred by</th>
+              <th>Urgency</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr><td colSpan={6}><div className="empty-state">No referrals found.</div></td></tr>
+            )}
+            {filtered.map(r => (
+              <tr key={r.id}>
+                <td><span className="student-name">{r.student_name}</span></td>
+                <td className="text-muted">{r.referred_by || '—'}</td>
+                <td><span className={`badge ${URGENCY_BADGE[r.urgency] || ''}`}>{r.urgency}</span></td>
+                <td><span className={`badge ${STATUS_BADGE[r.status] || ''}`}>{r.status}</span></td>
+                <td className="text-muted">{r.date || '—'}</td>
+                <td>
+                  <button className="btn btn--sm" onClick={() => setModal({ type: 'view', data: r })}>
+                    View
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-12 text-gray-400 text-sm">No referrals found.</td></tr>
-              )}
-              {filtered.map(r => (
-                <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-gray-800">{r.student_name}</td>
-                  <td className="px-4 py-3 text-gray-500">{r.referred_by || '—'}</td>
-                  <td className="px-4 py-3">
-                    <span style={{ ...URGENCY_STYLE[r.urgency], padding: '2px 10px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{r.urgency}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="flex items-center gap-2 text-gray-700">
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLOR[r.status] ?? '#888', display: 'inline-block' }} />
-                      {r.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{r.date || '—'}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => setModal({ type: 'view', data: r })}
-                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="View">
-                        <Eye size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {modal?.type === 'view' && (

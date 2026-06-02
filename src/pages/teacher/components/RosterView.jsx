@@ -53,10 +53,10 @@ export default function RosterView({ subject, onBack, onReportStudent }) {
               <p>{student.studentId}</p>
             </div>
             <button 
-              className="btn-primary"
+              className="btn btn--sm"
               onClick={() => onReportStudent(student)}
             >
-              Report Incident
+              Report
             </button>
           </div>
         ))}

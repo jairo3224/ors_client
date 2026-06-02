@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { incidentService } from '../../../services/incidentService';
 
 const INCIDENT_TYPES = [
@@ -13,18 +13,14 @@ const INCIDENT_TYPES = [
 const URGENCY_LEVELS = ['Low', 'Medium', 'High', 'Critical'];
 
 export default function ReportView({ onSuccess, initialStudent }) {
-  const [studentQuery, setStudentQuery] = useState('');
+  const [studentQuery, setStudentQuery] = useState(
+    initialStudent ? `${initialStudent.name} (${initialStudent.studentId})` : ''
+  );
   const [incidentType, setIncidentType] = useState('Disrespectful Behavior');
   const [urgencyLevel, setUrgencyLevel] = useState('Low');
   const [description, setDescription] = useState('');
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (initialStudent) {
-      setStudentQuery(`${initialStudent.name} (${initialStudent.studentId})`);
-    }
-  }, [initialStudent]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -123,7 +119,7 @@ export default function ReportView({ onSuccess, initialStudent }) {
           {error && <div className="form-error">{error}</div>}
 
           <div className="form-actions">
-            <button type="submit" className="btn-primary" disabled={submitting}>
+            <button type="submit" className="btn" disabled={submitting}>
               {submitting ? 'Submitting...' : 'Submit Report'}
             </button>
           </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, Pencil, Trash2, X, AlertCircle, ShieldCheck } from 'lucide-react';
-import { getUsers, createUser, updateUser, deleteUser } from './api';
+import { Plus, Search, Pencil, Trash2, X, AlertCircle } from 'lucide-react';
+import { getUsers, createUser, updateUser, deleteUser } from './hooks/api';
 
 const ROLES = ['Teacher', 'Department Head', 'Principal', 'Guidance Office', 'Chaplain', 'OSAS'];
 const DEPARTMENTS = ['College of Engineering', 'College of Arts', 'College of Science', 'College of Business', 'College of Education', 'Institution-wide'];
