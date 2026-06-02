@@ -9,8 +9,24 @@ import LoginPage              from '../pages/auth/LoginPage';
 
 // Role dashboards (create these as stubs for now)
 import OsasDashboard          from '../pages/OSAS/Dashboard';
+import OsasHomePage           from '../pages/OSAS/HomePage';
+import OsasReferralsPage      from '../pages/OSAS/ReferralsPage';
+import OsasReportsPage        from '../pages/OSAS/ReportsPage';
+import OsasUsersPage          from '../pages/OSAS/UsersPage';
+import OsasSanctionsPage      from '../pages/OSAS/SanctionsPage';
+import OsasCaseMeetingsPage   from '../pages/OSAS/CaseMeetingsPage';
+import OsasSettingsPage       from '../pages/OSAS/SettingsPage';
+import OsasAuditLogPage       from '../pages/OSAS/AuditLogPage';
 import GuidanceDashboard      from '../pages/guidance/Dashboard';
+import GuidanceHomePage       from '../pages/guidance/HomePage';
+import GuidanceReferralsPage  from '../pages/guidance/ReferralsPage';
+import GuidanceCounselingPage from '../pages/guidance/CounselingPage';
+import GuidanceMeetingsPage   from '../pages/guidance/MeetingsPage';
 import ChaplainDashboard      from '../pages/chaplain/Dashboard';
+import ChaplainHomePage       from '../pages/chaplain/HomePage';
+import ChaplainReferralsPage  from '../pages/chaplain/ReferralsPage';
+import ChaplainSpiritualPage  from '../pages/chaplain/SpiritualCarePage';
+import ChaplainMeetingsPage   from '../pages/chaplain/MeetingsPage';
 import ChairpersonDashboard   from '../pages/chairperson/Dashboard';
 import TeacherDashboard       from '../pages/teacher/Dashboard';
 
@@ -60,33 +76,52 @@ export default function AppRouter() {
 
         {/* OSAS */}
         <Route
-          path="/osas/*"
+          path="/osas"
           element={
             <ProtectedRoute roles={[ROLES.OSAS]}>
               <OsasDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<OsasHomePage />} />
+          <Route path="referrals" element={<OsasReferralsPage />} />
+          <Route path="reports" element={<OsasReportsPage />} />
+          <Route path="users" element={<OsasUsersPage />} />
+          <Route path="sanctions" element={<OsasSanctionsPage />} />
+          <Route path="case-meetings" element={<OsasCaseMeetingsPage />} />
+          <Route path="settings" element={<OsasSettingsPage />} />
+          <Route path="audit-log" element={<OsasAuditLogPage />} />
+        </Route>
 
         {/* Guidance */}
         <Route
-          path="/guidance/*"
+          path="/guidance"
           element={
             <ProtectedRoute roles={[ROLES.GUIDANCE]}>
               <GuidanceDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<GuidanceHomePage />} />
+          <Route path="referrals" element={<GuidanceReferralsPage />} />
+          <Route path="counseling" element={<GuidanceCounselingPage />} />
+          <Route path="meetings" element={<GuidanceMeetingsPage />} />
+        </Route>
 
         {/* Chaplain */}
         <Route
-          path="/chaplain/*"
+          path="/chaplain"
           element={
             <ProtectedRoute roles={[ROLES.CHAPLAIN]}>
               <ChaplainDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<ChaplainHomePage />} />
+          <Route path="referrals" element={<ChaplainReferralsPage />} />
+          <Route path="spiritual" element={<ChaplainSpiritualPage />} />
+          <Route path="meetings" element={<ChaplainMeetingsPage />} />
+        </Route>
 
         {/* Department Head / Chairperson */}
         <Route
