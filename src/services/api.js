@@ -21,6 +21,7 @@ api.interceptors.request.use(config => {
   return config;
 }, error => Promise.reject(error));
 
+// Chaplain endpoints
 api.getDashboard = () => api.get('/chaplain/dashboard');
 api.getSessions = () => api.get('/chaplain/sessions');
 api.scheduleSession = (sessionData) => api.post('/chaplain/sessions/schedule', sessionData);
