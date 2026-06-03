@@ -1,6 +1,6 @@
 // src/routes/AppRouter.jsx
 
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth, ROLES }    from '../context/AuthContext';
 import ProtectedRoute         from './ProtectedRoute';
 
@@ -63,7 +63,7 @@ function RoleRedirect() {
 
 export default function AppRouter() {
   return (
-    <HashRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         {/* Public */}
         <Route path="/login"        element={<LoginPage />} />
@@ -159,6 +159,6 @@ export default function AppRouter() {
         {/* 404 */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
