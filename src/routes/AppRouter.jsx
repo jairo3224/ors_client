@@ -14,6 +14,23 @@ import ChaplainDashboard      from '../pages/chaplain/Dashboard';
 import ChairpersonDashboard   from '../pages/chairperson/Dashboard';
 import TeacherDashboard       from '../pages/teacher/Dashboard';
 
+// OSAS sub-pages
+import OsasOverviewPage      from '../pages/OSAS/pages/OverviewPage';
+import IncidentsPage          from '../pages/OSAS/pages/IncidentsPage';
+import ReferralsPage          from '../pages/OSAS/pages/ReferralsPage';
+import SanctionsPage          from '../pages/OSAS/pages/SanctionsPage';
+import ResponsePage           from '../pages/OSAS/pages/ResponsePage';
+import MeetingsPage           from '../pages/OSAS/pages/MeetingsPage';
+import AnalyticsPage          from '../pages/OSAS/pages/AnalyticsPage';
+import UsersPage              from '../pages/OSAS/pages/UsersPage';
+import SettingsPage           from '../pages/OSAS/pages/SettingsPage';
+import AuditLogPage           from '../pages/OSAS/pages/AuditLogPage';
+import AttachmentsPage        from '../pages/OSAS/pages/AttachmentsPage';
+
+// Chaplain sub-pages
+import ChaplainReferrals      from '../pages/chaplain/Referrals';
+import ChaplainSessions       from '../pages/chaplain/Sessions';
+
 // Chairperson sub-pages
 import OverviewPage           from '../pages/chairperson/OverviewPage';
 import StudentsPage           from '../pages/chairperson/StudentsPage';

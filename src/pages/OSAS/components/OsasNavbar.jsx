@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { mockStore } from '../../../shared/mockStore';
+import spacLogo from '../../../assets/spac logo 2.png';
 import { LayoutDashboard, ShieldAlert, ArrowLeftRight, Ban, MessageSquare, BarChart3, Users, Settings, ClipboardList, Paperclip, Calendar } from 'lucide-react';
 import '../../chairperson/components/ChairpersonNavbar.css';
 import './OsasNavbar.css';
@@ -37,7 +38,7 @@ export default function OsasNavbar() {
     <header className="c-navbar osas-navbar">
       <div className="c-navbar__left">
         <div className="c-navbar__brand">
-          <img src="/spac logo 2.png" alt="Logo" className="osas-navbar__logo" />
+          <img src={spacLogo} alt="Logo" className="osas-navbar__logo" />
           <div className="c-navbar__brand-text">
             <span className="c-navbar__dept">Office of Student Affairs and Services</span>
             <span className="c-navbar__portal">OSAS Portal</span>
