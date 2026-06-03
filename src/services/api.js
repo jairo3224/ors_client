@@ -95,6 +95,23 @@ class ApiService {
     return this.request('/auth/me');
   }
 
+  // Convenience HTTP method wrappers
+  get(endpoint, options = {}) {
+    return this.request(endpoint, { ...options, method: 'GET' });
+  }
+
+  post(endpoint, data, options = {}) {
+    return this.request(endpoint, { ...options, method: 'POST', body: JSON.stringify(data) });
+  }
+
+  put(endpoint, data, options = {}) {
+    return this.request(endpoint, { ...options, method: 'PUT', body: JSON.stringify(data) });
+  }
+
+  delete(endpoint, options = {}) {
+    return this.request(endpoint, { ...options, method: 'DELETE' });
+  }
+
   // Chaplain endpoints
   getDashboard = () => this.request('/chaplain/dashboard');
   getSessions = () => this.request('/chaplain/sessions');
