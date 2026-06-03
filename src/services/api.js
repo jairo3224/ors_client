@@ -75,6 +75,7 @@ class ApiService {
     return false;
   }
 
+  // Auth
   async login(email, password) {
     return this.request('/auth/login', {
       method: 'POST',
