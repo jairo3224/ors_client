@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import spacLogo from '../assets/spac logo 2.png';
 import { LogOut } from 'lucide-react';
 
 function Hamburger({ open }) {
@@ -12,7 +13,7 @@ function Hamburger({ open }) {
   );
 }
 
-export default function Navbar({ navItems, title, user, onLogout, logoPath = '/spac logo 2.png' }) {
+export default function Navbar({ navItems, title, user, onLogout, logoPath = spacLogo }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
