@@ -2,11 +2,6 @@ import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { teacherService } from '../../../services/teacherService';
 
-function Avatar({ name }) {
-  const initials = (name || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  return <div className="avatar">{initials}</div>;
-}
-
 export default function ReportsPage() {
   const context = useOutletContext();
   const { setForwardTarget } = context || {};
@@ -97,10 +92,9 @@ export default function ReportsPage() {
             <div key={incident.id} className="report-card card">
               <div className="report-top">
                 <div className="report-student">
-                  <Avatar name={incident.student_name} />
                   <div>
                     <div style={{ fontWeight: 700, color: '#1a3a5c', fontSize: '0.95rem' }}>
-                      {incident.student_name || 'Unknown Student'}
+                      Name: {incident.student_name || 'Unknown Student'}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
                       {incident.type_name} · {incident.urgency_level} urgency

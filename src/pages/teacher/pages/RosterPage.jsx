@@ -2,11 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { teacherService } from '../../../services/teacherService';
 
-function Avatar({ name }) {
-  const initials = (name || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  return <div className="avatar">{initials}</div>;
-}
-
 export default function RosterPage() {
   const { classId } = useParams();
   const navigate = useNavigate();
@@ -15,7 +10,7 @@ export default function RosterPage() {
 
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [hoveredStudent, setHoveredStudent] = useState(null);
+  const [expandedStudent, setExpandedStudent] = useState(null);
 
   useEffect(() => {
     if (!classId) return;
@@ -39,8 +34,8 @@ export default function RosterPage() {
     navigate('/teacher/classes');
   };
 
-  const handleReportStudent = (student) => {
-    navigate(`/teacher/report/${student.student_number}`);
+  const toggleExpand = (studentId) => {
+    setExpandedStudent(expandedStudent === studentId ? null : studentId);
   };
 
   return (
@@ -67,33 +62,29 @@ export default function RosterPage() {
         ) : (
           <div className="students-list">
             {students.map(student => (
-              <div
-                key={student.student_id}
-                className="student-row card"
-                onMouseEnter={() => setHoveredStudent(student.student_id)}
-                onMouseLeave={() => setHoveredStudent(null)}
-              >
-                <Avatar name={`${student.first_name} ${student.last_name}`} />
-                <div className="student-info">
-                  <h4>{student.first_name} {student.last_name}</h4>
+              <div key={student.student_id} className="student-row card">
+                <div className="student-row-main" onClick={() => toggleExpand(student.student_id)}>
+                  <div className="student-info">
+                    <h4>Name: {student.first_name} {student.last_name}</h4>
+                  </div>
+                  <span className={`dropdown-arrow ${expandedStudent === student.student_id ? 'open' : ''}`}>
+                    ▼
+                  </span>
                 </div>
-                {hoveredStudent === student.student_id && (
-                  <div className="hover-card">
-                    <div className="hover-item">
-                      <span className="hover-label">Department</span>
-                      <span>{student.department_name || 'N/A'}</span>
-                    </div>
-                    <div className="hover-item">
-                      <span className="hover-label">Student ID</span>
-                      <span>{student.student_number}</span>
-                    </div>
-                    <div className="hover-divider" />
-                    <button
-                      className="hover-action"
-                      onClick={() => handleReportStudent(student)}
-                    >
-                      Report Incident
-                    </button>
+                {expandedStudent === student.student_id && (
+                  <div className="student-dropdown">
+                    <table className="dropdown-table">
+                      <tbody>
+                        <tr>
+                          <td className="dropdown-label">Department</td>
+                          <td className="dropdown-value">{student.department_name || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                          <td className="dropdown-label">Student ID</td>
+                          <td className="dropdown-value">{student.student_number}</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>

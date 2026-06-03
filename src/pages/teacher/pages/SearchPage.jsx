@@ -1,11 +1,6 @@
 import { useState } from 'react';
 import { teacherService } from '../../../services/teacherService';
 
-function Avatar({ name }) {
-  const initials = (name || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  return <div className="avatar">{initials}</div>;
-}
-
 export default function SearchPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState([]);
@@ -73,10 +68,9 @@ export default function SearchPage() {
           <div className="search-results">
             {results.map((student) => (
               <div key={student.id} className="student-result card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Avatar name={`${student.first_name} ${student.last_name}`} />
+                <div>
                   <div>
-                    <h4>{student.first_name} {student.last_name}</h4>
+                    <h4>Name: {student.first_name} {student.last_name}</h4>
                     <p>ID: {student.student_number} · {student.year_level} · {student.department_name}</p>
                   </div>
                 </div>
