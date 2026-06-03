@@ -7,12 +7,16 @@ import ProtectedRoute         from './ProtectedRoute';
 // Auth pages
 import LoginPage              from '../pages/auth/LoginPage';
 
-// Role dashboards (create these as stubs for now)
+// Role dashboards
 import OsasDashboard          from '../pages/OSAS/Dashboard';
 import GuidanceDashboard      from '../pages/guidance/Dashboard';
 import ChaplainDashboard      from '../pages/chaplain/Dashboard';
 import ChairpersonDashboard   from '../pages/chairperson/Dashboard';
 import TeacherDashboard       from '../pages/teacher/Dashboard';
+
+// Chaplain sub-pages
+import ChaplainReferrals      from '../pages/chaplain/Referrals';
+import ChaplainSessions       from '../pages/chaplain/Sessions';
 
 // Chairperson sub-pages
 import OverviewPage           from '../pages/chairperson/OverviewPage';
@@ -30,9 +34,6 @@ import TeacherSearchPage      from '../pages/teacher/pages/SearchPage';
 
 import UnauthorizedPage       from '../pages/auth/UnauthorizedPage';
 
-/**
- * After login, redirect the user to their role-specific dashboard.
- */
 function RoleRedirect() {
   const { user } = useAuth();
 
@@ -86,31 +87,36 @@ export default function AppRouter() {
           }
         />
 
-        {/* Chaplain */}
+        {/* Chaplain - Layout wrapper with nested routes */}
         <Route
-          path="/chaplain/*"
+          path="/chaplain"
           element={
             <ProtectedRoute roles={[ROLES.CHAPLAIN]}>
               <ChaplainDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={null} />
+          <Route path="referrals" element={<ChaplainReferrals />} />
+          <Route path="sessions" element={<ChaplainSessions />} />
+        </Route>
 
         {/* Department Head / Chairperson */}
         <Route
-  path="/chairperson"
-  element={
-    <ProtectedRoute roles={[ROLES.DEPARTMENT_HEAD]}>
-      <ChairpersonDashboard />
-    </ProtectedRoute>
-  }
->
-  <Route index element={<OverviewPage />} />
-  <Route path="students" element={<StudentsPage />} />
-  <Route path="reports" element={<ReportsPage />} />
-  <Route path="cases" element={<CasesPage />} />
-  <Route path="inbox" element={<InboxPage />} />   {/* new */}
-</Route>
+          path="/chairperson"
+          element={
+            <ProtectedRoute roles={[ROLES.DEPARTMENT_HEAD]}>
+              <ChairpersonDashboard />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<OverviewPage />} />
+          <Route path="students" element={<StudentsPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="cases" element={<CasesPage />} />
+          <Route path="inbox" element={<InboxPage />} />
+        </Route>
 
         {/* Teacher */}
         <Route
