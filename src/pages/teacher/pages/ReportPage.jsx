@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { incidentService } from '../../../services/incidentService';
 import { teacherService } from '../../../services/teacherService';
 
@@ -19,9 +19,6 @@ export default function ReportPage() {
   const { studentId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const context = useOutletContext();
-
-  const { setShowSuccess, loadMyIncidents } = context || {};
 
   const [studentQuery, setStudentQuery] = useState('');
   const [incidentType, setIncidentType] = useState('5');
@@ -29,14 +26,15 @@ export default function ReportPage() {
   const [description, setDescription] = useState('');
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    if (location.state?.student) {
+    if (studentId) {
+      setStudentQuery(studentId);
+    } else if (location.state?.student) {
       const s = location.state.student;
       setStudentQuery(`${s.first_name ?? s.name} (${s.student_number ?? s.studentId})`);
     }
-  }, [location.state?.student]);
+  }, [studentId, location.state?.student]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -66,13 +64,7 @@ export default function ReportPage() {
         urgency_level: urgencyLevel.toLowerCase(),
         description: description.trim(),
       });
-      setSuccess(true);
-      setStudentQuery('');
-      setIncidentType('5');
-      setUrgencyLevel('Low');
-      setDescription('');
-      loadMyIncidents?.();
-      setShowSuccess?.(true);
+      navigate('/teacher/reports');
     } catch (err) {
       const messages = [];
       if (err.errors) {
@@ -97,84 +89,71 @@ export default function ReportPage() {
 
       <div className="report-view">
         <div className="card report-form">
-          {success ? (
-            <div className="success-state">
-              <div className="success-icon">✓</div>
-              <h2>Incident Report Submitted</h2>
-              <p>Your report has been submitted successfully.</p>
-              <button className="btn-primary" onClick={() => navigate('/teacher/reports')} style={{ marginTop: 20 }}>
-                View My Reports
+          <h2>Report Incident</h2>
+
+          <form onSubmit={handleSubmit}>
+            <div className="form-grid">
+              <div className="form-group">
+                <label className="label" htmlFor="studentQuery">Student *</label>
+                <input
+                  id="studentQuery"
+                  type="text"
+                  className="input"
+                  value={studentQuery}
+                  onChange={(e) => setStudentQuery(e.target.value)}
+                  placeholder="Enter student name or student ID"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="label" htmlFor="incidentType">Incident type *</label>
+                <select
+                  id="incidentType"
+                  className="select"
+                  value={incidentType}
+                  onChange={(e) => setIncidentType(e.target.value)}
+                >
+                  {INCIDENT_TYPES.map(({ id, name }) => (
+                    <option key={id} value={id}>{name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="label" htmlFor="urgencyLevel">Urgency level *</label>
+                <select
+                  id="urgencyLevel"
+                  className="select"
+                  value={urgencyLevel}
+                  onChange={(e) => setUrgencyLevel(e.target.value)}
+                >
+                  {URGENCY_LEVELS.map(level => (
+                    <option key={level} value={level}>{level}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="label" htmlFor="description">Description *</label>
+              <textarea
+                id="description"
+                className="textarea"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe the incident in detail..."
+                rows="6"
+              />
+            </div>
+
+            {error && <div className="form-error">{error}</div>}
+
+            <div className="form-actions">
+              <button type="submit" className="btn-primary" disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Submit Report'}
               </button>
             </div>
-          ) : (
-            <>
-              <h2>Report Incident</h2>
-
-              <form onSubmit={handleSubmit}>
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label className="label" htmlFor="studentQuery">Student *</label>
-                    <input
-                      id="studentQuery"
-                      type="text"
-                      className="input"
-                      value={studentQuery}
-                      onChange={(e) => setStudentQuery(e.target.value)}
-                      placeholder="Enter student name or student ID"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="label" htmlFor="incidentType">Incident type *</label>
-                    <select
-                      id="incidentType"
-                      className="select"
-                      value={incidentType}
-                      onChange={(e) => setIncidentType(e.target.value)}
-                    >
-                      {INCIDENT_TYPES.map(({ id, name }) => (
-                        <option key={id} value={id}>{name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="label" htmlFor="urgencyLevel">Urgency level *</label>
-                    <select
-                      id="urgencyLevel"
-                      className="select"
-                      value={urgencyLevel}
-                      onChange={(e) => setUrgencyLevel(e.target.value)}
-                    >
-                      {URGENCY_LEVELS.map(level => (
-                        <option key={level} value={level}>{level}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="label" htmlFor="description">Description *</label>
-                  <textarea
-                    id="description"
-                    className="textarea"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe the incident in detail..."
-                    rows="6"
-                  />
-                </div>
-
-                {error && <div className="form-error">{error}</div>}
-
-                <div className="form-actions">
-                  <button type="submit" className="btn-primary" disabled={submitting}>
-                    {submitting ? 'Submitting...' : 'Submit Report'}
-                  </button>
-                </div>
-              </form>
-            </>
-          )}
+          </form>
         </div>
       </div>
     </div>

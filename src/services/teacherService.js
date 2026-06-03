@@ -90,42 +90,15 @@ export const teacherService = {
    *
    * @returns {Promise<TeacherClass[]>}
    */
-  getClasses: () => apiFetch('/teacher/classes'),
+  getClasses: async () => {
+    const res = await apiFetch('/teacher/classes');
+    return res.data?.classes ?? [];
+  },
 
-  /**
-   * GET /teacher/classes/:teacherSubjectId/roster
-   *
-   * IMPORTANT: The route param is teacher_subjects.id (PK of the junction row),
-   * NOT subjects.id. This uniquely identifies one teacher → subject → section →
-   * school year assignment, which is the correct scope for a class roster.
-   *
-   * Expected SQL (PHP controller):
-   *   SELECT st.id            AS student_id,
-   *          st.student_number,
-   *          st.first_name,
-   *          st.last_name,
-   *          st.middle_name,
-   *          st.year_level,
-   *          sec.id           AS section_id,
-   *          sec.section_name,
-   *          st.status
-   *   FROM   student_subjects ss
-   *   JOIN   students     st  ON ss.student_id  = st.id
-   *   JOIN   sections     sec ON ss.section_id  = sec.id
-   *   -- Resolve which subject_id/section_id/school_year_id to filter by:
-   *   JOIN   teacher_subjects ts ON ts.id = :teacherSubjectId
-   *   WHERE  ss.subject_id     = ts.subject_id
-   *     AND  ss.section_id     = ts.section_id
-   *     AND  ss.school_year_id = ts.school_year_id
-   *     AND  st.status         = 'active'
-   *     AND  st.deleted_at     IS NULL
-   *   ORDER BY st.last_name, st.first_name
-   *
-   * @param {number} teacherSubjectId — teacher_subjects.id PK
-   * @returns {Promise<RosterStudent[]>}
-   */
-  getRoster: (teacherSubjectId) =>
-    apiFetch(`/teacher/classes/${teacherSubjectId}/roster`),
+  getRoster: async (teacherSubjectId) => {
+    const res = await apiFetch(`/teacher/classes/${teacherSubjectId}/roster`);
+    return res.data?.students ?? [];
+  },
 
   /**
    * GET /teacher/incidents

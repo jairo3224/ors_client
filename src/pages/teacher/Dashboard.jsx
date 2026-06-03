@@ -18,8 +18,8 @@ export default function TeacherDashboard() {
     const path = location.pathname;
     if (path.includes('/classes')) return 'classes';
     if (path.includes('/roster')) return 'classes';
-    if (path.includes('/report')) return 'report';
     if (path.includes('/reports')) return 'reports';
+    if (path.includes('/report')) return 'report';
     if (path.includes('/search')) return 'search';
     return 'classes';
   };
