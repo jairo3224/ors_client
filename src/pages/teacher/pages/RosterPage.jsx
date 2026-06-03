@@ -1,72 +1,50 @@
-import { useNavigate, useParams } from 'react-router-dom';
-
-const CLASSES = [
-  { id: 1, name: 'Data Structures', subject: 'CS 201', period: '1st' },
-  { id: 2, name: 'Web Development', subject: 'CS 302', period: '2nd' },
-  { id: 3, name: 'Database Management', subject: 'CS 303', period: '3rd' },
-  { id: 4, name: 'Object-Oriented Programming', subject: 'CS 202', period: '1st' },
-  { id: 5, name: 'Computer Networks', subject: 'CS 401', period: '2nd' },
-  { id: 6, name: 'Software Engineering', subject: 'CS 402', period: '3rd' },
-];
-
-const ALL_STUDENTS = [
-  { id: 1, name: 'Juan Dela Cruz', studentId: 'STU001' },
-  { id: 2, name: 'Maria Santos', studentId: 'STU002' },
-  { id: 3, name: 'Carlos Garcia', studentId: 'STU003' },
-  { id: 4, name: 'Anna Lopez', studentId: 'STU004' },
-  { id: 5, name: 'Miguel Reyes', studentId: 'STU005' },
-  { id: 6, name: 'Sofia Mendoza', studentId: 'STU006' },
-  { id: 7, name: 'Diego Tan', studentId: 'STU007' },
-  { id: 8, name: 'Isabella Chua', studentId: 'STU008' },
-  { id: 9, name: 'Rafael Villanueva', studentId: 'STU009' },
-  { id: 10, name: 'Gabriella Ramos', studentId: 'STU010' },
-  { id: 11, name: 'Luis Mercado', studentId: 'STU011' },
-  { id: 12, name: 'Angela Cruz', studentId: 'STU012' },
-  { id: 13, name: 'Mateo Del Rosario', studentId: 'STU013' },
-  { id: 14, name: 'Julia Ferrer', studentId: 'STU014' },
-  { id: 15, name: 'Kyle Santiago', studentId: 'STU015' },
-];
-
-const ROSTERS = {
-  1: [1, 3, 9, 11, 14],   // Data Structures
-  2: [2, 5, 8, 12, 15],   // Web Development
-  3: [4, 6, 7, 10, 13],   // Database Management
-  4: [1, 5, 8, 10, 14],   // OOP
-  5: [2, 4, 9, 11, 15],   // Computer Networks
-  6: [3, 6, 7, 12, 13],   // Software Engineering
-};
-
-function Avatar({ name }) {
-  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  return <div className="avatar">{initials}</div>;
-}
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { teacherService } from '../../../services/teacherService';
 
 export default function RosterPage() {
   const { classId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const subject = location.state?.subject;
 
-  const subject = CLASSES.find(c => c.id === parseInt(classId));
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedStudent, setExpandedStudent] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  if (!subject) {
-    return (
-      <div>
-        <div className="page-header">
-          <h1>Class Not Found</h1>
-        </div>
-      </div>
-    );
-  }
+  const filteredStudents = students.filter(student => {
+    const q = searchTerm.toLowerCase();
+    if (!q) return true;
+    const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
+    return fullName.includes(q) || (student.student_number || '').toLowerCase().includes(q);
+  });
+
+  useEffect(() => {
+    if (!classId) return;
+    let cancelled = false;
+    async function fetchRoster() {
+      setLoading(true);
+      try {
+        const data = await teacherService.getRoster(parseInt(classId));
+        if (!cancelled) setStudents(Array.isArray(data) ? data : []);
+      } catch {
+        if (!cancelled) setStudents([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchRoster();
+    return () => { cancelled = true; };
+  }, [classId]);
 
   const handleBack = () => {
     navigate('/teacher/classes');
   };
 
-  const handleReportStudent = (student) => {
-    navigate(`/teacher/report/${student.studentId}`, { state: { student } });
+  const toggleExpand = (studentId) => {
+    setExpandedStudent(expandedStudent === studentId ? null : studentId);
   };
-
-  const rosterIds = ROSTERS[subject.id] || [1, 2, 3];
-  const students = rosterIds.map(id => ALL_STUDENTS.find(s => s.id === id));
 
   return (
     <div>
@@ -81,27 +59,59 @@ export default function RosterPage() {
         <button className="btn-back" onClick={handleBack}>← Back to Classes</button>
         
         <div className="roster-header">
-          <h2>{subject.subject} — {subject.name}</h2>
-          <p>Period {subject.period} · {students.length} students</p>
+          <h2>{subject ? `${subject.subject_code} — ${subject.subject_name}` : 'Class'}</h2>
+          <p>{subject ? `${subject.section_name} · ${students.length} students` : ''}</p>
         </div>
 
-        <div className="students-list">
-          {students.map(student => (
-            <div key={student.id} className="student-row card">
-              <Avatar name={student.name} />
-              <div className="student-info">
-                <h4>{student.name}</h4>
-                <p>{student.studentId}</p>
-              </div>
-              <button 
-                className="btn-primary"
-                onClick={() => handleReportStudent(student)}
-              >
-                Report Incident
-              </button>
-            </div>
-          ))}
+        <div className="form-group form-search-row" style={{ maxWidth: 400, marginBottom: 18 }}>
+          <input
+            type="text"
+            className="input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by student name or ID..."
+          />
+          {searchTerm && (
+            <button className="btn btn--outline btn-sm" onClick={() => setSearchTerm('')}>Clear</button>
+          )}
         </div>
+
+        {loading ? (
+          <p>Loading...</p>
+        ) : students.length === 0 ? (
+          <div className="card empty-state"><p>No students found in this class.</p></div>
+        ) : (
+          <div className="students-list">
+            {filteredStudents.map(student => (
+              <div key={student.student_id} className="student-row card">
+                <div className="student-row-main" onClick={() => toggleExpand(student.student_id)}>
+                  <div className="student-info">
+                    <h4>Name: {student.first_name} {student.last_name}</h4>
+                  </div>
+                  <span className={`dropdown-arrow ${expandedStudent === student.student_id ? 'open' : ''}`}>
+                    ▼
+                  </span>
+                </div>
+                {expandedStudent === student.student_id && (
+                  <div className="student-dropdown">
+                    <table className="dropdown-table">
+                      <tbody>
+                        <tr>
+                          <td className="dropdown-label">Department</td>
+                          <td className="dropdown-value">{student.department_name || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                          <td className="dropdown-label">Student ID</td>
+                          <td className="dropdown-value">{student.student_number}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
