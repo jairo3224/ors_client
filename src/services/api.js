@@ -1,37 +1,111 @@
-import axios from 'axios';
+const API_BASE = 'http://localhost/ors-backend/api';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost/ors-backend/api';
-
-const api = axios.create({
-  baseURL: BASE_URL,
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    config.headers = {
-      ...config.headers,
-      Authorization: `Bearer ${token}`,
-    };
+class ApiService {
+  constructor() {
+    this.baseUrl = API_BASE;
   }
-  return config;
-}, error => Promise.reject(error));
 
-// Chaplain endpoints
-api.getDashboard = () => api.get('/chaplain/dashboard');
-api.getSessions = () => api.get('/chaplain/sessions');
-api.scheduleSession = (sessionData) => api.post('/chaplain/sessions/schedule', sessionData);
-api.cancelSession = (sessionId) => api.post(`/chaplain/sessions/${sessionId}/cancel`);
-api.completeSession = (sessionId) => api.post(`/chaplain/sessions/${sessionId}/complete`);
-api.getAllReferrals = () => api.get('/chaplain/referrals/all');
-api.acceptReferral = (referralId, acceptData) => api.post(`/chaplain/referrals/${referralId}/accept`, acceptData);
-api.returnReferral = (referralId, returnData) => api.post(`/chaplain/referrals/${referralId}/return`, returnData);
-api.getNotificationCount = () => api.get('/chaplain/notifications/count');
-api.getNotifications = () => api.get('/chaplain/notifications');
-api.markNotificationRead = (notificationId) => api.post(`/chaplain/notifications/${notificationId}/read`);
+  getToken() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user?.access_token || '';
+  }
 
-export default api;
+  async request(endpoint, options = {}) {
+    const url = `${this.baseUrl}${endpoint}`;
+    const token = this.getToken();
+
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    if (options.body instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
+    try {
+      let response = await fetch(url, config);
+
+      if (response.status === 401 && !options._retry) {
+        const refreshed = await this.refreshToken();
+        if (refreshed) {
+          config.headers['Authorization'] = `Bearer ${this.getToken()}`;
+          config._retry = true;
+          response = await fetch(url, config);
+        }
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Request failed');
+      }
+
+      return data;
+    } catch (error) {
+      if (error.message === 'Failed to fetch') {
+        throw new Error('Network error - server may be offline');
+      }
+      throw error;
+    }
+  }
+
+  async refreshToken() {
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.access_token) {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        user.access_token = data.access_token;
+        localStorage.setItem('user', JSON.stringify(user));
+        return true;
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+    }
+    return false;
+  }
+
+  async login(email, password) {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+      credentials: 'include',
+    });
+  }
+
+  async logout() {
+    return this.request('/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
+  }
+
+  async getMe() {
+    return this.request('/auth/me');
+  }
+
+  // Chaplain endpoints
+  getDashboard = () => this.request('/chaplain/dashboard');
+  getSessions = () => this.request('/chaplain/sessions');
+  scheduleSession = (sessionData) => this.request('/chaplain/sessions/schedule', { method: 'POST', body: JSON.stringify(sessionData) });
+  cancelSession = (sessionId) => this.request(`/chaplain/sessions/${sessionId}/cancel`, { method: 'POST' });
+  completeSession = (sessionId) => this.request(`/chaplain/sessions/${sessionId}/complete`, { method: 'POST' });
+  getAllReferrals = () => this.request('/chaplain/referrals/all');
+  acceptReferral = (referralId, acceptData) => this.request(`/chaplain/referrals/${referralId}/accept`, { method: 'POST', body: JSON.stringify(acceptData) });
+  returnReferral = (referralId, returnData) => this.request(`/chaplain/referrals/${referralId}/return`, { method: 'POST', body: JSON.stringify(returnData) });
+  getNotificationCount = () => this.request('/chaplain/notifications/count');
+  getNotifications = () => this.request('/chaplain/notifications');
+  markNotificationRead = (notificationId) => this.request(`/chaplain/notifications/${notificationId}/read`, { method: 'POST' });
+}
+
+export default new ApiService();
