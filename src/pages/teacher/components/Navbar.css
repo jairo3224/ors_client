@@ -20,8 +20,8 @@
 }
 
 .navbar-logo {
-  width: 32px;
-  height: 32px;
+  width: 60px;
+  height: 60px;
   object-fit: contain;
 }
 
@@ -32,7 +32,7 @@
 }
 
 .navbar-dept {
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: rgba(255,255,255,0.45);
@@ -41,7 +41,7 @@
 
 .navbar-portal {
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .navbar-links {

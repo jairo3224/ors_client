@@ -1,29 +1,62 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const CLASSES = [
-  { id: 1, name: 'Data Structures', subject: 'CS 201', period: '1st' },
-  { id: 2, name: 'Web Development', subject: 'CS 302', period: '2nd' },
-  { id: 3, name: 'Database Management', subject: 'CS 303', period: '3rd' },
-  { id: 4, name: 'Object-Oriented Programming', subject: 'CS 202', period: '1st' },
-  { id: 5, name: 'Computer Networks', subject: 'CS 401', period: '2nd' },
-  { id: 6, name: 'Software Engineering', subject: 'CS 402', period: '3rd' },
-];
-
-const ICONS = {
-  'CS 201': '🗂️',
-  'CS 302': '🌐',
-  'CS 303': '🗄️',
-  'CS 202': '💻',
-  'CS 401': '🌍',
-  'CS 402': '📋',
-};
+import { teacherService } from '../../../services/teacherService';
 
 export default function ClassesPage() {
   const navigate = useNavigate();
+  const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSelectSubject = (subject) => {
-    navigate(`/teacher/roster/${subject.id}`, { state: { subject } });
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchClasses() {
+      setLoading(true);
+      try {
+        const data = await teacherService.getClasses();
+        if (!cancelled) setClasses(Array.isArray(data) ? data : []);
+      } catch {
+        if (!cancelled) setClasses([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchClasses();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleSelectSubject = (cls) => {
+    navigate(`/teacher/roster/${cls.teacher_subject_id}`, { state: { subject: cls } });
   };
+
+  if (loading) {
+    return (
+      <div>
+        <div className="page-header">
+          <h1>📚 My Classes</h1>
+          <div className="date">
+            {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
+        </div>
+        <div className="classes-view"><p>Loading...</p></div>
+      </div>
+    );
+  }
+
+  if (classes.length === 0) {
+    return (
+      <div>
+        <div className="page-header">
+          <h1>📚 My Classes</h1>
+          <div className="date">
+            {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
+        </div>
+        <div className="classes-view">
+          <div className="card empty-state"><p>No classes found for this semester.</p></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -36,11 +69,11 @@ export default function ClassesPage() {
       
       <div className="classes-view">
         <div className="classes-grid">
-          {CLASSES.map(cls => (
-            <div key={cls.id} className="class-card card" style={{ padding: '22px 24px' }}>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>{ICONS[cls.subject] || '📚'}</div>
-              <h3 className="card-title">{cls.subject} — {cls.name}</h3>
-              <p className="card-subtitle">Period {cls.period}</p>
+          {classes.map(cls => (
+            <div key={cls.teacher_subject_id} className="class-card card" style={{ padding: '22px 24px' }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>📚</div>
+              <h3 className="card-title">{cls.subject_code} — {cls.subject_name}</h3>
+              <p className="card-subtitle">{cls.section_name} · Year {cls.year_level} · {cls.semester}</p>
               <div className="card-footer">
                 <button 
                   className="btn-primary"
