@@ -1,6 +1,6 @@
 // src/routes/AppRouter.jsx
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth, ROLES }    from '../context/AuthContext';
 import ProtectedRoute         from './ProtectedRoute';
 
@@ -50,7 +50,7 @@ function RoleRedirect() {
 
 export default function AppRouter() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         {/* Public */}
         <Route path="/login"        element={<LoginPage />} />
@@ -74,7 +74,20 @@ export default function AppRouter() {
               <OsasDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<OsasOverviewPage />} />
+          <Route path="incidents" element={<IncidentsPage />} />
+          <Route path="referrals" element={<ReferralsPage />} />
+          <Route path="sanctions" element={<SanctionsPage />} />
+          <Route path="response" element={<ResponsePage />} />
+          <Route path="meetings" element={<MeetingsPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="users" element={<UsersPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="audit" element={<AuditLogPage />} />
+          <Route path="attachments" element={<AttachmentsPage />} />
+          <Route path="*" element={<Navigate to="/osas" replace />} />
+        </Route>
 
         {/* Guidance */}
         <Route
@@ -133,6 +146,6 @@ export default function AppRouter() {
         {/* 404 */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
