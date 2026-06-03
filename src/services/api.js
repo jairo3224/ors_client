@@ -75,6 +75,7 @@ class ApiService {
     return false;
   }
 
+  // Auth
   async login(email, password) {
     return this.request('/auth/login', {
       method: 'POST',
@@ -94,10 +95,12 @@ class ApiService {
     return this.request('/auth/me');
   }
 
+  // Chaplain Dashboard
   async getDashboard() {
     return this.request('/chaplain/dashboard');
   }
 
+  // Sessions
   async getSessions() {
     return this.request('/chaplain/sessions');
   }
@@ -121,6 +124,7 @@ class ApiService {
     });
   }
 
+  // Referrals
   async getAllReferrals() {
     return this.request('/chaplain/referrals/all');
   }
@@ -139,6 +143,7 @@ class ApiService {
     });
   }
 
+  // Notifications
   async getNotificationCount() {
     return this.request('/chaplain/notifications/count');
   }
