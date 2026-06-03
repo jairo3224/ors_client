@@ -1,10 +1,12 @@
 RewriteEngine On
-RewriteBase /
-RewriteRule ^index\.html$ - [L]
+
+# Don't rewrite existing files or directories
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.html [L]
 
-# Pass Authorization header to PHP
+# Serve index.html for all other routes (SPA fallback)
+RewriteRule ^ index.html [L]
+
+# Pass Authorization header (for API requests)
 RewriteCond %{HTTP:Authorization} .
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
