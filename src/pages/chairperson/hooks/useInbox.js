@@ -20,6 +20,7 @@ export function useInbox(deptId) {
       })
       .catch(err => {
         console.error(err);
+        setInbox([]);
       })
       .finally(() => setLoading(false));
   }, [deptId]);

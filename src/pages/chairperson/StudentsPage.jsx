@@ -13,7 +13,7 @@ export default function StudentsPage() {
   const [filter, setFilter] = useState('all');
 
   const filtered = students.filter(s => {
-    const matchSearch = `${s.first_name} ${s.last_name} ${s.student_id}`.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = `${s.first_name} ${s.last_name} ${s.student_number}`.toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === 'all' || s.status === filter;
     return matchSearch && matchFilter;
   });
@@ -33,7 +33,7 @@ export default function StudentsPage() {
         <select className="select" value={filter} onChange={e => setFilter(e.target.value)}>
           <option value="all">All Students</option>
           <option value="active">Active</option>
-          <option value="flagged">Flagged</option>
+          <option value="inactive">Inactive</option>
         </select>
       </div>
 
@@ -52,17 +52,16 @@ export default function StudentsPage() {
                     <Avatar name={`${s.first_name} ${s.last_name}`} />
                     <div>
                       <div className="student-name">{s.first_name} {s.last_name}</div>
-                      <div className="student-email">{s.email}</div>
                     </div>
                   </div>
                 </td>
-                <td><span className="mono">{s.student_id}</span></td>
+                <td><span className="mono">{s.student_number}</span></td>
                 <td>
                   <div>{s.year_level}</div>
                   <div className="text-muted">{s.program}</div>
                 </td>
                 <td>
-                  <span className={`badge ${s.status === 'flagged' ? 'badge--high' : 'badge--active'}`}>
+                  <span className={`badge ${s.status === 'active' ? 'badge--active' : 'badge--inactive'}`}>
                     {s.status}
                   </span>
                 </td>

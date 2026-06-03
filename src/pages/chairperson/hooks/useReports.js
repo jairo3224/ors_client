@@ -10,9 +10,8 @@ export function useReports(deptId) {
     setLoading(true);
     api.get('/chairperson/reports')
       .then(res => {
-        const reports = res?.data?.data?.reports || [];
-        if (reports.length === 0) {
-          // Try localhost-only debug endpoint
+        const reportsList = res?.data?.data?.reports || [];
+        if (reportsList.length === 0) {
           return api.get('/debug/reports')
             .then(r => {
               const rep = r?.data?.data?.reports || [];
@@ -32,24 +31,27 @@ export function useReports(deptId) {
               setReports(mapped);
             })
             .catch(() => setReports([]));
+        } else {
+          const mapped = reportsList.map(r => ({
+            id: r.id,
+            student_id: r.student_id,
+            student_name: r.student_name,
+            teacher_name: r.teacher_name,
+            subject: r.subject,
+            type: r.type,
+            severity: r.severity,
+            description: r.description,
+            date_submitted: r.date_submitted,
+            status: r.status,
+            remarks: r.remarks || [],
+          }));
+          setReports(mapped);
         }
-
-        const mapped = reports.map(r => ({
-          id: r.id,
-          student_id: r.student_id,
-          student_name: r.student_name,
-          teacher_name: r.teacher_name,
-          subject: r.subject,
-          type: r.type,
-          severity: r.severity,
-          description: r.description,
-          date_submitted: r.date_submitted,
-          status: r.status,
-          remarks: r.remarks || [],
-        }));
-        setReports(mapped);
       })
-      .catch(err => console.error(err))
+      .catch(err => {
+        console.error(err);
+        setReports([]);
+      })
       .finally(() => setLoading(false));
   }, [deptId]);
 

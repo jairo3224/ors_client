@@ -5,9 +5,8 @@ export function useChairpersonMutations() {
     await api.post(`/chairperson/reports/${reportId}/remark`, { text });
   };
 
-  const forwardToOSAS = async (itemId, type) => {
-    // type 'case' or 'report' both use same forward endpoint for now
-    await api.post(`/chairperson/reports/${itemId}/forward`);
+  const forwardToOSAS = async (itemId, type, destination, note) => {
+    await api.post(`/chairperson/reports/${itemId}/forward`, { destination, note });
   };
 
   const respondToInbox = async (referralId, responseText) => {

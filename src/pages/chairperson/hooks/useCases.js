@@ -18,7 +18,10 @@ export function useCases(deptId) {
         }
         setCases(caseItems);
       })
-      .catch(err => console.error(err))
+      .catch(err => {
+        console.error(err);
+        setCases([]);
+      })
       .finally(() => setLoading(false));
   }, [deptId]);
 

@@ -7,9 +7,21 @@ function Avatar({ name }) {
   return <div className="avatar">{initials}</div>;
 }
 
-const SEVERITY_CLASS = { low: 'badge--low', moderate: 'badge--moderate', high: 'badge--high' };
-const STATUS_CLASS = { pending: 'badge--pending', reviewed: 'badge--reviewed', forwarded: 'badge--forwarded',
-                        open: 'badge--open', referred: 'badge--referred', closed: 'badge--closed' };
+const SEVERITY_CLASS = {
+  low: 'badge--low',
+  medium: 'badge--moderate',
+  high: 'badge--high',
+  critical: 'badge--high',
+};
+
+const STATUS_CLASS = {
+  pending: 'badge--pending',
+  reviewed: 'badge--reviewed',
+  forwarded: 'badge--forwarded',
+  open: 'badge--open',
+  referred: 'badge--referred',
+  closed: 'badge--closed',
+};
 
 export default function ReportsPage() {
   const { reports, setRemarkTarget, setForwardTarget, setForwardType, user } = useOutletContext();
@@ -45,14 +57,13 @@ export default function ReportsPage() {
         <select className="select" value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)}>
           <option value="all">All Severity</option>
           <option value="low">Low</option>
-          <option value="moderate">Moderate</option>
+          <option value="medium">Medium</option>
           <option value="high">High</option>
         </select>
       </div>
 
       {filtered.map(report => (
         <div key={report.id} className="card report-card">
-          {/* ... same report card layout as before ... */}
           <div className="report-card__header">
             <div className="report-card__student">
               <Avatar name={report.student_name} />
@@ -62,8 +73,8 @@ export default function ReportsPage() {
               </div>
             </div>
             <div className="report-card__labels">
-              <span className={`badge ${SEVERITY_CLASS[report.severity]}`}>{report.severity}</span>
-              <span className={`badge ${STATUS_CLASS[report.status]}`}>{report.status}</span>
+              <span className={`badge ${SEVERITY_CLASS[report.severity] || 'badge--moderate'}`}>{report.severity}</span>
+              <span className={`badge ${STATUS_CLASS[report.status] || 'badge--pending'}`}>{report.status}</span>
               <span className="report-card__date">{report.date_submitted}</span>
             </div>
           </div>
@@ -84,7 +95,7 @@ export default function ReportsPage() {
             <button className="btn btn--sm" onClick={() => setRemarkTarget(report)}>Add Remark</button>
             {report.status !== 'forwarded' && (
               <button className="btn btn--sm btn--warning" onClick={() => { setForwardTarget(report); setForwardType('report'); }}>
-                Forward Case
+                Forward to OSAS
               </button>
             )}
           </div>
