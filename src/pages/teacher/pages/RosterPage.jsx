@@ -11,6 +11,14 @@ export default function RosterPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedStudent, setExpandedStudent] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredStudents = students.filter(student => {
+    const q = searchTerm.toLowerCase();
+    if (!q) return true;
+    const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
+    return fullName.includes(q) || (student.student_number || '').toLowerCase().includes(q);
+  });
 
   useEffect(() => {
     if (!classId) return;
@@ -55,13 +63,26 @@ export default function RosterPage() {
           <p>{subject ? `${subject.section_name} · ${students.length} students` : ''}</p>
         </div>
 
+        <div className="form-group form-search-row" style={{ maxWidth: 400, marginBottom: 18 }}>
+          <input
+            type="text"
+            className="input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by student name or ID..."
+          />
+          {searchTerm && (
+            <button className="btn btn--outline btn-sm" onClick={() => setSearchTerm('')}>Clear</button>
+          )}
+        </div>
+
         {loading ? (
           <p>Loading...</p>
         ) : students.length === 0 ? (
           <div className="card empty-state"><p>No students found in this class.</p></div>
         ) : (
           <div className="students-list">
-            {students.map(student => (
+            {filteredStudents.map(student => (
               <div key={student.student_id} className="student-row card">
                 <div className="student-row-main" onClick={() => toggleExpand(student.student_id)}>
                   <div className="student-info">

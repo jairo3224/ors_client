@@ -41,22 +41,20 @@ export default function SearchPage() {
       </div>
 
       <div className="search-view">
-        <div className="card" style={{ maxWidth: 600 }}>
-          <form onSubmit={handleSearch}>
-            <div className="form-group form-search-row">
-              <input
-                type="text"
-                className="input"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by student name or ID..."
-              />
-              <button type="submit" className="btn-primary" disabled={searching}>
-                {searching ? 'Searching...' : 'Search'}
-              </button>
-            </div>
-          </form>
-        </div>
+        <form onSubmit={handleSearch} style={{ maxWidth: 400}}>
+          <div className="form-group form-search-row">
+            <input
+              type="text"
+              className="input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by student name or ID..."
+            />
+            <button type="submit" className="btn-primary" disabled={searching}>
+              {searching ? 'Searching...' : 'Search'}
+            </button>
+          </div>
+        </form>
 
         {searched && !searching && results.length === 0 && (
           <div className="card no-results">
