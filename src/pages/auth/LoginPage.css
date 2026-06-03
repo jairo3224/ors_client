@@ -1,5 +1,7 @@
 /* src/pages/auth/LoginPage.css */
 
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap');
+
 /* ── Tokens ─────────────────────────────────────────── */
 :root {
   --clr-primary:       #1a3a5c;
@@ -20,8 +22,6 @@
   --font-sans:         'Crimson Pro', Georgia, 'Times New Roman', serif;
   --font-ui:           'DM Sans', system-ui, sans-serif;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap');
 
 /* ── Root layout ────────────────────────────────────── */
 .login-root {
