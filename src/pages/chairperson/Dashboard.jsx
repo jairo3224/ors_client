@@ -1,6 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Outlet, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useStudents } from './hooks/useStudents';
+import { useReports } from './hooks/useReports';
+import { useCases } from './hooks/useCases';
+import { useInbox } from './hooks/useInbox';
+import { useChairpersonMutations } from './hooks/useChairpersonMutations';
 import ChairpersonNavbar from './components/ChairpersonNavbar';
 import Footer from '../../components/common/Footer';
 import './components/Dashboard.css';
@@ -536,87 +541,52 @@ export function CasesPage() {
 // ─── MAIN DASHBOARD ─────────────────────────────────────────────────
 export default function Dashboard() {
   const { user } = useAuth();
+  const deptId = user?.department_id;
 
-  const [students, setStudents] = useState([]);
-  const [reports, setReports] = useState([]);
-  const [cases, setCases] = useState([]);
-  const [inbox, setInbox] = useState([]);  // <-- new state
-  const [loading, setLoading] = useState(true);
+  const { students, loading: studentsLoading } = useStudents(deptId);
+  const { reports, setReports, loading: reportsLoading } = useReports(deptId);
+  const { cases, setCases, loading: casesLoading } = useCases(deptId);
+  const { inbox, setInbox, loading: inboxLoading } = useInbox(deptId);
+  const { addRemark, forwardToOSAS, respondToInbox } = useChairpersonMutations();
+
+  const loading = studentsLoading || reportsLoading || casesLoading || inboxLoading;
 
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [remarkTarget, setRemarkTarget] = useState(null);
   const [forwardTarget, setForwardTarget] = useState(null);
   const [forwardType, setForwardType] = useState(null);
 
-  // Simulate department‑scoped data loading
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      try {
-        // TODO: replace with API call
-        await new Promise(r => setTimeout(r, 400));
-
-        const deptId = user?.department_id; // e.g. 1
-        console.log('Dashboard loading data:', { user, deptId });
-        // Filter mock data by chairperson’s own department
-        const filteredStudents = deptId
-          ? MOCK_STUDENTS.filter(s => s.department_id === deptId)
-          : MOCK_STUDENTS;
-        const filteredReports = deptId
-          ? MOCK_REPORTS.filter(r => r.department_id === deptId)
-          : MOCK_REPORTS;
-        const filteredCases = deptId
-          ? MOCK_CASES.filter(c => c.department_id === deptId)
-          : MOCK_CASES;
-        const filteredInbox = deptId
-          ? MOCK_REFERRALS.filter(i => i.department_id === deptId)
-          : MOCK_REFERRALS;
-
-        const hasDepartmentData =
-          filteredStudents.length || filteredReports.length || filteredCases.length || filteredInbox.length;
-
-        setStudents(hasDepartmentData ? filteredStudents : MOCK_STUDENTS);
-        setReports(hasDepartmentData ? filteredReports : MOCK_REPORTS);
-        setCases(hasDepartmentData ? filteredCases : MOCK_CASES);
-        setInbox(hasDepartmentData ? filteredInbox : MOCK_REFERRALS);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, [user]);
-
   const handleAddRemark = useCallback(async (reportId, text, authorName) => {
-    const today = new Date().toISOString().split('T')[0];
-    setReports(prev => prev.map(r => r.id === reportId
-      ? { ...r, status: 'reviewed', remarks: [...r.remarks, { author: authorName, text, date: today }] }
-      : r
-    ));
-  }, []);
+    try {
+      await addRemark(reportId, text);
+      // Optionally refetch or optimistically update
+    } catch (err) {
+      console.error(err);
+    }
+  }, [addRemark]);
 
   const handleForward = useCallback(async (itemId, destination, note, type) => {
-    if (type === 'case') {
-      setCases(prev => prev.map(c => c.id === itemId
-        ? { ...c, status: 'referred', assigned_to: destination, last_update: new Date().toISOString().split('T')[0] }
-        : c
-      ));
-    } else {
-      setReports(prev => prev.map(r => r.id === itemId ? { ...r, status: 'forwarded' } : r));
+    try {
+      await forwardToOSAS(itemId, type);
+      // Update local state optimistically
+      if (type === 'case') {
+        setCases(prev => prev.map(c => c.id === itemId ? { ...c, status: 'referred' } : c));
+      } else {
+        setReports(prev => prev.map(r => r.id === itemId ? { ...r, status: 'forwarded' } : r));
+      }
+    } catch (err) {
+      console.error(err);
     }
-  }, []);
+  }, [forwardToOSAS, setCases, setReports]);
 
-  // New: handle response to a referral from OSAS
   const handleInboxResponse = useCallback(async (referralId, responseText) => {
-    setInbox(prev =>
-      prev.map(i =>
-        i.id === referralId
-          ? { ...i, status: 'responded', response: responseText }
-          : i
-      )
-    );
-  }, []);
+    try {
+      await respondToInbox(referralId, responseText);
+      setInbox(prev => prev.map(i => i.id === referralId ? { ...i, status: 'responded', response: responseText } : i));
+    } catch (err) {
+      console.error(err);
+    }
+  }, [respondToInbox, setInbox]);
 
   const pendingCount = reports.filter(r => r.status === 'pending').length;
   const openCaseCount = cases.filter(c => c.status === 'open').length;
