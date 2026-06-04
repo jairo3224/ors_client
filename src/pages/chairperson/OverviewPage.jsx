@@ -12,7 +12,8 @@ const STATUS_CLASS = {
   pending: 'badge--pending',
   reviewed: 'badge--reviewed',
   forwarded: 'badge--forwarded',
-  open: 'badge--open',
+  in_progress: 'badge--in_progress',
+  resolved: 'badge--resolved',
   referred: 'badge--referred',
   closed: 'badge--closed',
 };
@@ -47,18 +48,22 @@ export default function OverviewPage() {
   const { students, reports, cases, user } = useOutletContext();
 
   const studentsWithCases = students.filter(s => s.cases_count > 0).length;
-  const pendingReports = reports.filter(r => r.status === 'pending').length;
+  const pendingReports = reports.filter(r => r.displayStatus === 'pending').length;
   const openCases = cases.filter(c => c.status === 'open').length;
   const highPriority = cases.filter(c => c.priority === 'high').length;
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">📊 Overview</h1>
-        <p className="page-subtitle">
-          {user?.department_name || 'Department'} ·{' '}
-          {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div>
+            <h1 className="page-title">📊 Overview</h1>
+            <p className="page-subtitle">
+              {user?.department_name || 'Department'} ·{' '}
+              {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="stats-grid">
@@ -79,7 +84,7 @@ export default function OverviewPage() {
                 <div className="report-item__meta">{r.subject} · {r.teacher_name}</div>
                 <div className="report-item__badges">
                   <span className={`badge ${SEVERITY_CLASS[r.severity] || 'badge--moderate'}`}>{r.severity}</span>
-                  <span className={`badge ${STATUS_CLASS[r.status] || 'badge--pending'}`}>{r.status}</span>
+                  <span className={`badge ${STATUS_CLASS[r.displayStatus] || ''}`}>{r.displayStatus}</span>
                 </div>
               </div>
               <div className="report-item__date">{r.date_submitted}</div>
@@ -96,7 +101,7 @@ export default function OverviewPage() {
                 <div className="case-item__title">{c.title}</div>
                 <div className="case-item__student">{c.student_name}</div>
               </div>
-              <span className={`badge ${STATUS_CLASS[c.status] || 'badge--open'}`}>{c.status}</span>
+              <span className={`badge ${STATUS_CLASS[c.status] || ''}`}>{c.status}</span>
             </div>
           ))}
         </div>
