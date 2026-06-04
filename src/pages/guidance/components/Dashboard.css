@@ -1,0 +1,25 @@
+.guidance-dashboard {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #f0f2f5;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+}
+
+.guidance-dashboard__content {
+  flex: 1;
+  padding: 92px 32px 28px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.guidance-dashboard__page {
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
