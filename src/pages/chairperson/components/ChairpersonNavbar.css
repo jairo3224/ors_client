@@ -17,7 +17,8 @@
 .c-navbar__left {
   display: flex;
   align-items: center;
-  gap: 36px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .c-navbar__brand {
@@ -40,10 +41,13 @@
   color: #fff;
 }
 
-.c-navbar__nav {
+/* ─── Center navigation container ─── */
+.c-navbar__center {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  flex: 1;
 }
 
 .c-navbar__link {
