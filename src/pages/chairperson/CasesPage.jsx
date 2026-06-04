@@ -6,7 +6,6 @@ const STATUS_CLASS = { open: 'badge--open', referred: 'badge--referred', closed:
 const PRIORITY_CLASS = { low: 'priority--low', medium: 'priority--medium', high: 'priority--high' };
 
 export default function CasesPage() {
-  // No longer pull handleUpdateCaseStatus – chairperson cannot change case status
   const { cases, setForwardTarget, setForwardType, user } = useOutletContext();
   const [filter, setFilter] = useState('all');
 
@@ -15,11 +14,15 @@ export default function CasesPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">🗂️ Cases</h1>
-        <p className="page-subtitle">
-          {user?.department_name || 'Department'} ·{' '}
-          {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div>
+            <h1 className="page-title">🗂️ Cases</h1>
+            <p className="page-subtitle">
+              {user?.department_name || 'Department'} ·{' '}
+              {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="filters">
@@ -48,7 +51,6 @@ export default function CasesPage() {
           </div>
           {c.notes && <p className="case-card__notes">{c.notes}</p>}
 
-          {/* Only “Refer to OSAS” – no status changes allowed */}
           {c.status === 'open' && (
             <div className="case-card__actions">
               <button

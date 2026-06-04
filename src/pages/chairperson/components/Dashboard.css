@@ -673,3 +673,6 @@
   padding: 80px;
   color: #94a3b8;
 }
+.badge--in_progress { background: #fff3e0; color: #e65100; }
+.badge--resolved { background: #e8f5e9; color: #2e7d32; }
+.badge--inactive { background: #fce4ec; color: #c62828; }   /* optional for inactive students */

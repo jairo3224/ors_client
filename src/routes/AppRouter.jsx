@@ -37,6 +37,7 @@ import StudentsPage           from '../pages/chairperson/StudentsPage';
 import ReportsPage            from '../pages/chairperson/ReportsPage';
 import CasesPage              from '../pages/chairperson/CasesPage';
 import InboxPage              from '../pages/chairperson/InboxPage';
+import SettingsPage           from '../pages/chairperson/SettingsPage';  // NEW
 
 // Guidance sub-pages
 import GuidanceOverviewPage      from '../pages/guidance/pages/OverviewPage';
@@ -158,6 +159,7 @@ export default function AppRouter() {
           <Route path="reports" element={<ReportsPage />} />
           <Route path="cases" element={<CasesPage />} />
           <Route path="inbox" element={<InboxPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
 
         {/* Teacher */}
