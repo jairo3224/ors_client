@@ -23,7 +23,7 @@ import ResponsePage           from '../pages/OSAS/pages/ResponsePage';
 import MeetingsPage           from '../pages/OSAS/pages/MeetingsPage';
 import AnalyticsPage          from '../pages/OSAS/pages/AnalyticsPage';
 import UsersPage              from '../pages/OSAS/pages/UsersPage';
-import SettingsPage           from '../pages/OSAS/pages/SettingsPage';
+import OsasSettingsPage       from '../pages/OSAS/pages/SettingsPage';
 import AuditLogPage           from '../pages/OSAS/pages/AuditLogPage';
 import AttachmentsPage        from '../pages/OSAS/pages/AttachmentsPage';
 
@@ -37,7 +37,7 @@ import StudentsPage           from '../pages/chairperson/StudentsPage';
 import ReportsPage            from '../pages/chairperson/ReportsPage';
 import CasesPage              from '../pages/chairperson/CasesPage';
 import InboxPage              from '../pages/chairperson/InboxPage';
-import SettingsPage           from '../pages/chairperson/SettingsPage';  // NEW
+import ChairpersonSettingsPage from '../pages/chairperson/SettingsPage';
 
 // Guidance sub-pages
 import GuidanceOverviewPage      from '../pages/guidance/pages/OverviewPage';
@@ -106,7 +106,7 @@ export default function AppRouter() {
           <Route path="meetings" element={<MeetingsPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="users" element={<UsersPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings" element={<OsasSettingsPage />} />
           <Route path="audit" element={<AuditLogPage />} />
           <Route path="attachments" element={<AttachmentsPage />} />
           <Route path="*" element={<Navigate to="/osas" replace />} />
@@ -159,7 +159,7 @@ export default function AppRouter() {
           <Route path="reports" element={<ReportsPage />} />
           <Route path="cases" element={<CasesPage />} />
           <Route path="inbox" element={<InboxPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings" element={<ChairpersonSettingsPage />} />
         </Route>
 
         {/* Teacher */}
