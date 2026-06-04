@@ -7,12 +7,29 @@ import ProtectedRoute         from './ProtectedRoute';
 // Auth pages
 import LoginPage              from '../pages/auth/LoginPage';
 
-// Role dashboards (create these as stubs for now)
+// Role dashboards
 import OsasDashboard          from '../pages/OSAS/Dashboard';
 import GuidanceDashboard      from '../pages/guidance/Dashboard';
 import ChaplainDashboard      from '../pages/chaplain/Dashboard';
 import ChairpersonDashboard   from '../pages/chairperson/Dashboard';
 import TeacherDashboard       from '../pages/teacher/Dashboard';
+
+// OSAS sub-pages
+import OsasOverviewPage      from '../pages/OSAS/pages/OverviewPage';
+import IncidentsPage          from '../pages/OSAS/pages/IncidentsPage';
+import ReferralsPage          from '../pages/OSAS/pages/ReferralsPage';
+import SanctionsPage          from '../pages/OSAS/pages/SanctionsPage';
+import ResponsePage           from '../pages/OSAS/pages/ResponsePage';
+import MeetingsPage           from '../pages/OSAS/pages/MeetingsPage';
+import AnalyticsPage          from '../pages/OSAS/pages/AnalyticsPage';
+import UsersPage              from '../pages/OSAS/pages/UsersPage';
+import OsasSettingsPage       from '../pages/OSAS/pages/SettingsPage';
+import AuditLogPage           from '../pages/OSAS/pages/AuditLogPage';
+import AttachmentsPage        from '../pages/OSAS/pages/AttachmentsPage';
+
+// Chaplain sub-pages
+import ChaplainReferrals      from '../pages/chaplain/Referrals';
+import ChaplainSessions       from '../pages/chaplain/Sessions';
 
 // Chairperson sub-pages
 import OverviewPage           from '../pages/chairperson/OverviewPage';
@@ -20,7 +37,7 @@ import StudentsPage           from '../pages/chairperson/StudentsPage';
 import ReportsPage            from '../pages/chairperson/ReportsPage';
 import CasesPage              from '../pages/chairperson/CasesPage';
 import InboxPage              from '../pages/chairperson/InboxPage';
-import SettingsPage           from '../pages/chairperson/SettingsPage';  // NEW
+import ChairpersonSettingsPage from '../pages/chairperson/SettingsPage';  // NEW
 
 // Teacher sub-pages
 import TeacherClassesPage     from '../pages/teacher/pages/ClassesPage';
@@ -31,9 +48,6 @@ import TeacherSearchPage      from '../pages/teacher/pages/SearchPage';
 
 import UnauthorizedPage       from '../pages/auth/UnauthorizedPage';
 
-/**
- * After login, redirect the user to their role-specific dashboard.
- */
 function RoleRedirect() {
   const { user } = useAuth();
 
@@ -51,7 +65,7 @@ function RoleRedirect() {
 
 export default function AppRouter() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         {/* Public */}
         <Route path="/login"        element={<LoginPage />} />
@@ -75,7 +89,20 @@ export default function AppRouter() {
               <OsasDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<OsasOverviewPage />} />
+          <Route path="incidents" element={<IncidentsPage />} />
+          <Route path="referrals" element={<ReferralsPage />} />
+          <Route path="sanctions" element={<SanctionsPage />} />
+          <Route path="response" element={<ResponsePage />} />
+          <Route path="meetings" element={<MeetingsPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="users" element={<UsersPage />} />
+          <Route path="settings" element={<OsasSettingsPage />} />
+          <Route path="audit" element={<AuditLogPage />} />
+          <Route path="attachments" element={<AttachmentsPage />} />
+          <Route path="*" element={<Navigate to="/osas" replace />} />
+        </Route>
 
         {/* Guidance */}
         <Route
@@ -87,15 +114,20 @@ export default function AppRouter() {
           }
         />
 
-        {/* Chaplain */}
+        {/* Chaplain - Layout wrapper with nested routes */}
         <Route
-          path="/chaplain/*"
+          path="/chaplain"
           element={
             <ProtectedRoute roles={[ROLES.CHAPLAIN]}>
               <ChaplainDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={null} />
+          <Route path="referrals" element={<ChaplainReferrals />} />
+          <Route path="sessions" element={<ChaplainSessions />} />
+        </Route>
 
         {/* Department Head / Chairperson */}
         <Route
@@ -111,7 +143,7 @@ export default function AppRouter() {
   <Route path="reports" element={<ReportsPage />} />
   <Route path="cases" element={<CasesPage />} />
   <Route path="inbox" element={<InboxPage />} />   {/* new */}
-  <Route path="settings" element={<SettingsPage />} />   {/* NEW */}
+  <Route path="settings" element={<ChairpersonSettingsPage />} />
 </Route>
 
         {/* Teacher */}
