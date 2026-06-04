@@ -1,11 +1,11 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, CheckCircle, XCircle, UserCheck, MessageSquare, AlertTriangle, FileText, Clock } from 'lucide-react';
 import Avatar from '../../../components/Avatar';
 import Badge from '../../../components/Badge';
 import StatusDropdown from '../../../components/StatusDropdown';
 import Modal, { ModalHeader, ModalActions } from '../../../components/Modal';
 import { PRIORITY_COLORS, INCIDENT_STATUSES, INCIDENT_STATUS_COLORS } from '../../../constants';
-import { mockStore, filterBySchoolYear } from '../../../shared/mockStore';
+import { useOSASIncidents } from '../hooks/useOSASIncidents';
 
 function AssignModal({ incident, onClose, onAssign }) {
   const [selected, setSelected] = useState('');
@@ -74,32 +74,28 @@ function NoteModal({ incident, onClose, onSave }) {
 }
 
 export default function IncidentsPage() {
-  const store = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState());
-  const incidents = filterBySchoolYear(store.incidents, store.settings.schoolYear, 'date_reported');
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterPriority, setFilterPriority] = useState('all');
+  const {
+    loading,
+    filteredIncidents,
+    stats,
+    search,
+    setSearch,
+    filterStatus,
+    setFilterStatus,
+    filterPriority,
+    setFilterPriority,
+    updateStatus,
+    assignIncident,
+    saveIncidentNote,
+  } = useOSASIncidents();
   const [assignTarget, setAssignTarget] = useState(null);
   const [noteTarget, setNoteTarget] = useState(null);
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, []);
+  const handleStatusChange = updateStatus;
+  const handleAssign = assignIncident;
+  const handleSaveNote = saveIncidentNote;
 
-  const handleStatusChange = (id, newStatus) => mockStore.updateIncident(id, { status: newStatus });
-  const handleAssign = (id, office, reason) => mockStore.updateIncident(id, { assigned_to: office, assignment_reason: reason, status: 'forwarded' });
-  const handleSaveNote = (id, note) => mockStore.updateIncident(id, { notes: note });
-
-  const filtered = incidents.filter(i => {
-    const matchSearch = `${i.student_name} ${i.teacher_name} ${i.type}`.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === 'all' || i.status === filterStatus;
-    const matchPriority = filterPriority === 'all' || i.priority === filterPriority;
-    return matchSearch && matchStatus && matchPriority;
-  });
-
-  const stats = { total: incidents.length, reported: incidents.filter(i => i.status === 'reported').length, underReview: incidents.filter(i => i.status === 'under_review' || i.status === 'investigating').length, resolved: incidents.filter(i => i.status === 'resolved').length, critical: incidents.filter(i => i.priority === 'critical').length };
+  const filtered = filteredIncidents;
 
   if (loading) return <div className="loading">Loading incidents...</div>;
 
@@ -130,7 +126,7 @@ export default function IncidentsPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {filtered.map(incident => (
           <div key={incident.id} className="card" style={{ borderLeft: `4px solid ${PRIORITY_COLORS[incident.priority] || '#ccc'}`, margin: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+            <div className="report-card__header">
               <div className="report-card__student">
                 <Avatar name={incident.student_name} />
                 <div>

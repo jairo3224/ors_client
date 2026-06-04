@@ -1,9 +1,9 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { Send, Inbox, Reply, ArrowRight, Building2 } from 'lucide-react';
 import Avatar from '../../../components/Avatar';
 import Modal, { ModalHeader, ModalActions } from '../../../components/Modal';
-import { mockStore, filterBySchoolYear } from '../../../shared/mockStore';
+import { useOSASReferrals } from '../hooks/useOSASReferrals';
 
 const OFFICES = ['OSAS', 'Guidance Office', 'Chaplain', 'Department Head'];
 
@@ -65,36 +65,29 @@ function SendModal({ onClose, onSubmit }) {
 
 export default function ReferralsPage() {
   const { user } = useAuth();
-  const store = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState());
-  const referrals = filterBySchoolYear(store.referrals, store.settings.schoolYear, 'date_sent');
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('inbox');
+  const {
+    loading,
+    tab,
+    setTab,
+    search,
+    setSearch,
+    filteredReferrals,
+    pendingInbox,
+    respondReferral,
+    sendReferral,
+  } = useOSASReferrals();
   const [respondTarget, setRespondTarget] = useState(null);
   const [showSend, setShowSend] = useState(false);
-  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 300);
     return () => clearTimeout(t);
   }, []);
 
-  const handleRespond = (id, text) => mockStore.updateReferral(id, { status: 'responded', response: text, responded_at: new Date().toISOString().split('T')[0] });
-  const handleSend = (data) => {
-    mockStore.addReferral({
-      student_name: data.studentName,
-      student_id: 'TBD',
-      from_office: 'OSAS',
-      to_office: data.toOffice,
-      subject: data.subject,
-      description: data.description,
-    });
-  };
+  const handleRespond = respondReferral;
+  const handleSend = sendReferral;
 
-  const inboxItems = referrals.filter(r => r.to_office === 'OSAS');
-  const sentItems = referrals.filter(r => r.from_office === 'OSAS');
-  const allItems = tab === 'inbox' ? inboxItems : tab === 'sent' ? sentItems : referrals;
-  const filtered = allItems.filter(r => `${r.student_name} ${r.subject} ${r.from_office} ${r.to_office}`.toLowerCase().includes(search.toLowerCase()));
-  const pendingInbox = inboxItems.filter(r => r.status === 'pending').length;
+  const filtered = filteredReferrals;
 
   if (loading) return <div className="loading">Loading referrals...</div>;
 
