@@ -37,7 +37,7 @@ import StudentsPage           from '../pages/chairperson/StudentsPage';
 import ReportsPage            from '../pages/chairperson/ReportsPage';
 import CasesPage              from '../pages/chairperson/CasesPage';
 import InboxPage              from '../pages/chairperson/InboxPage';
-import ChairpersonSettingsPage from '../pages/chairperson/SettingsPage';  // NEW
+import SettingsPage           from '../pages/chairperson/SettingsPage';
 
 // Guidance sub-pages
 import GuidanceOverviewPage      from '../pages/guidance/pages/OverviewPage';
@@ -147,20 +147,20 @@ export default function AppRouter() {
 
         {/* Department Head / Chairperson */}
         <Route
-  path="/chairperson"
-  element={
-    <ProtectedRoute roles={[ROLES.DEPARTMENT_HEAD]}>
-      <ChairpersonDashboard />
-    </ProtectedRoute>
-  }
->
-  <Route index element={<OverviewPage />} />
-  <Route path="students" element={<StudentsPage />} />
-  <Route path="reports" element={<ReportsPage />} />
-  <Route path="cases" element={<CasesPage />} />
-  <Route path="inbox" element={<InboxPage />} />   {/* new */}
-  <Route path="settings" element={<ChairpersonSettingsPage />} />
-</Route>
+          path="/chairperson"
+          element={
+            <ProtectedRoute roles={[ROLES.DEPARTMENT_HEAD]}>
+              <ChairpersonDashboard />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<OverviewPage />} />
+          <Route path="students" element={<StudentsPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="cases" element={<CasesPage />} />
+          <Route path="inbox" element={<InboxPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
 
         {/* Teacher */}
         <Route

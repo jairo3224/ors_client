@@ -1,198 +1,202 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { mockStore } from '../../../shared/mockStore';
-
-const GUIDANCE_OFFICE = 'Guidance Office';
+import { useState, useEffect, useCallback } from 'react';
+import { guidanceService } from '../../../services/guidanceService';
 
 export function useGuidanceData() {
-  const [state, setState] = useState(mockStore.getState());
+  const [data, setData] = useState({
+    referralsToGuidance: [],
+    referralsFromGuidance: [],
+    incidentsAssignedToGuidance: [],
+    guidanceCases: [],
+    guidanceMeetings: [],
+    guidanceAssessments: [],
+    guidanceNotifications: [],
+    allReferrals: [],
+    allIncidents: [],
+    allMeetings: [],
+    allAssessments: [],
+    allNotifications: [],
+    allSanctions: [],
+    isLoading: true,
+    error: null,
+  });
+
+  const merge = useCallback((partial) => {
+    setData(prev => ({ ...prev, ...partial }));
+  }, []);
+
+  const fetchAll = useCallback(async () => {
+    merge({ isLoading: true, error: null });
+    try {
+      const [inbox, sent, incidents, responses, notifications] = await Promise.all([
+        guidanceService.getInbox(),
+        guidanceService.getSent(),
+        guidanceService.getIncidents(),
+        guidanceService.getResponses(),
+        guidanceService.getNotifications(),
+      ]);
+
+      const referralsToGuidance = inbox;
+      const referralsFromGuidance = sent;
+      const incidentsAssignedToGuidance = incidents.assigned;
+      const allIncidents = incidents.all;
+      const guidanceMeetings = responses.meetings;
+      const guidanceAssessments = responses.assessments;
+      const guidanceNotifications = notifications;
+
+      const guidanceCases = incidentsAssignedToGuidance.map(inc => ({
+        id: inc.id,
+        student_name: inc.student_name,
+        title: inc.type,
+        type: inc.type,
+        status: inc.status === 'resolved' || inc.status === 'closed' ? 'closed' : 'open',
+        priority: inc.priority === 'critical' ? 'high' : inc.priority,
+        assigned_to: 'Guidance Office',
+        opened_date: inc.date_reported,
+        last_update: inc.last_updated,
+        notes: inc.description,
+      }));
+
+      merge({
+        referralsToGuidance,
+        referralsFromGuidance,
+        incidentsAssignedToGuidance,
+        guidanceCases,
+        guidanceMeetings,
+        guidanceAssessments,
+        guidanceNotifications,
+        allReferrals: [...referralsToGuidance, ...referralsFromGuidance],
+        allIncidents,
+        allMeetings: guidanceMeetings,
+        allAssessments: guidanceAssessments,
+        allNotifications: guidanceNotifications,
+        allSanctions: [],
+        isLoading: false,
+      });
+    } catch (err) {
+      merge({ isLoading: false, error: err.message || 'Failed to load data.' });
+    }
+  }, [merge]);
 
   useEffect(() => {
-    const unsub = mockStore.subscribe(() => {
-      setState(mockStore.getState());
-    });
-    return unsub;
-  }, []);
+    fetchAll();
+  }, [fetchAll]);
 
-  const referralsToGuidance = useMemo(
-    () => state.referrals.filter(r => r.to_office === GUIDANCE_OFFICE),
-    [state.referrals]
-  );
+  const pendingReferrals = data.referralsToGuidance.filter(r => r.status === 'pending');
+  const upcomingMeetings = data.guidanceMeetings;
+  const openCases = data.guidanceCases.filter(c => c.status === 'open');
 
-  const referralsFromGuidance = useMemo(
-    () => state.referrals.filter(r => r.from_office === GUIDANCE_OFFICE),
-    [state.referrals]
-  );
+  const acceptReferral = useCallback(async (referralId) => {
+    await guidanceService.acceptReferral(referralId);
+    fetchAll();
+  }, [fetchAll]);
 
-  const incidentsAssignedToGuidance = useMemo(
-    () => state.incidents.filter(i => i.assigned_to === GUIDANCE_OFFICE),
-    [state.incidents]
-  );
+  const rejectReferral = useCallback(async (referralId, responseNote) => {
+    await guidanceService.rejectReferral(referralId, responseNote || 'Referral declined.');
+    fetchAll();
+  }, [fetchAll]);
 
-  const guidanceCases = useMemo(
-    () => state.cases.filter(c => c.assigned_to === GUIDANCE_OFFICE),
-    [state.cases]
-  );
+  const respondWithType = useCallback(async (referralId, responseType, content) => {
+    await guidanceService.respondToReferral(referralId, content, responseType);
+    fetchAll();
+  }, [fetchAll]);
 
-  const guidanceMeetings = useMemo(
-    () => state.meetings.filter(m => m.participants.includes(GUIDANCE_OFFICE)),
-    [state.meetings]
-  );
+  const returnToOSAS = useCallback(async (referralId, findings) => {
+    await guidanceService.returnToOSAS(referralId, findings);
+    fetchAll();
+  }, [fetchAll]);
 
-  const guidanceAssessments = useMemo(
-    () => state.assessments.filter(a => a.assessor === GUIDANCE_OFFICE),
-    [state.assessments]
-  );
-
-  const guidanceNotifications = useMemo(
-    () => state.notifications.filter(n =>
-      n.message?.toLowerCase().includes('guidance') ||
-      n.type === 'referral'
-    ),
-    [state.notifications]
-  );
-
-  const pendingReferrals = useMemo(
-    () => referralsToGuidance.filter(r => r.status === 'pending'),
-    [referralsToGuidance]
-  );
-
-  const upcomingMeetings = useMemo(
-    () => guidanceMeetings.filter(m => m.status === 'scheduled' || m.status === 'in_progress'),
-    [guidanceMeetings]
-  );
-
-  const openCases = useMemo(
-    () => guidanceCases.filter(c => c.status === 'open'),
-    [guidanceCases]
-  );
-
-  const acceptReferral = useCallback((referralId, responseNote) => {
-    mockStore.updateReferral(referralId, {
-      status: 'accepted',
-      response: responseNote || 'Referral accepted. Guidance Office will handle the case.',
-      responded_at: new Date().toISOString().split('T')[0],
-    });
-  }, []);
-
-  const rejectReferral = useCallback((referralId, responseNote) => {
-    mockStore.updateReferral(referralId, {
-      status: 'rejected',
-      response: responseNote || 'Referral declined.',
-      responded_at: new Date().toISOString().split('T')[0],
-    });
-  }, []);
-
-  const respondWithType = useCallback((referralId, responseType, content) => {
-    mockStore.updateReferral(referralId, {
-      status: 'responded',
-      response_type: responseType,
-      response: content,
-      responded_at: new Date().toISOString().split('T')[0],
-    });
-    mockStore.addAssessment({
-      student_name: '',
-      type: responseType,
-      assessor: GUIDANCE_OFFICE,
-      assessment: content,
-      status: 'completed',
-      date: new Date().toISOString().split('T')[0],
-    });
-  }, []);
-
-  const returnToOSAS = useCallback((referralId, findings) => {
-    mockStore.updateReferral(referralId, {
-      status: 'responded',
-      response: findings,
-      responded_at: new Date().toISOString().split('T')[0],
-    });
-    mockStore.addNotification({
-      title: 'Guidance Office Case Findings',
-      message: `Guidance Office has returned a case with complete findings: ${findings}`,
-      priority: 'high',
-      type: 'referral',
-      link: '/osas/referrals',
-    });
-  }, []);
-
-  const referToChaplain = useCallback((referralId, studentName, studentId, subject, description) => {
-    mockStore.addReferral({
+  const referToChaplain = useCallback(async (referralId, studentName, studentId, subject, description) => {
+    await guidanceService.referToChaplain(referralId, {
       student_name: studentName,
       student_id: studentId,
-      from_office: GUIDANCE_OFFICE,
-      to_office: 'Chaplain',
       subject: subject || 'Spiritual Support Referral',
       description: description || 'Referral from Guidance Office for spiritual counseling.',
     });
+    fetchAll();
+  }, [fetchAll]);
+
+  const addSession = useCallback(async (session) => {
+    await guidanceService.createSession(session);
+    fetchAll();
+  }, [fetchAll]);
+
+  const addAttachment = useCallback(async (caseId, fileName, fileType, fileSize) => {
+    await guidanceService.addAttachment(caseId, fileName, fileType, fileSize);
+    fetchAll();
+  }, [fetchAll]);
+
+  const getStudentHistory = useCallback(async (studentName) => {
+    try {
+      const students = await guidanceService.searchStudents(studentName);
+      if (students.length === 0) {
+        return { incidents: [], referrals: [], meetings: [], assessments: [], sanctions: [] };
+      }
+      const student = students[0];
+      const history = await guidanceService.getStudentHistory(student.id);
+      return {
+        incidents: (history.incidents ?? []).map(inc => ({
+          ...inc,
+          id: String(inc.id),
+          priority: inc.urgency_level || 'medium',
+          date_reported: inc.date_reported,
+          assigned_to: inc.assigned_to || '',
+        })),
+        referrals: (history.referrals ?? []).map(ref => ({
+          ...ref,
+          id: String(ref.id),
+          from_office: ref.from_office,
+          to_office: ref.to_office,
+          date_sent: ref.date_sent,
+          response: ref.response,
+          subject: ref.subject || 'Referral',
+        })),
+        meetings: [],
+        assessments: (history.responses ?? []).map(r => ({
+          id: String(r.id),
+          student_name: studentName,
+          type: r.response_type,
+          assessor: r.author,
+          status: 'completed',
+          assessment: r.remarks,
+          recommendation: '',
+          date: r.date,
+        })),
+        sanctions: [],
+      };
+    } catch {
+      return { incidents: [], referrals: [], meetings: [], assessments: [], sanctions: [] };
+    }
   }, []);
 
-  const addSession = useCallback((session) => {
-    mockStore.addMeeting({
-      ...session,
-      participants: [GUIDANCE_OFFICE, ...(session.participants || [])],
-    });
+  const getRelatedIncidents = useCallback(async (studentName) => {
+    try {
+      const students = await guidanceService.searchStudents(studentName);
+      if (students.length === 0) return [];
+      const history = await guidanceService.getStudentHistory(students[0].id);
+      return (history.incidents ?? []).map(inc => ({
+        ...inc,
+        id: String(inc.id),
+        priority: inc.urgency_level || 'medium',
+        date_reported: inc.date_reported,
+      }));
+    } catch {
+      return [];
+    }
   }, []);
 
-  const addAttachment = useCallback((caseId, fileName, fileType, fileSize) => {
-    mockStore.addAttachment({
-      file_name: fileName,
-      file_type: fileType,
-      file_size: fileSize || 0,
-      uploaded_by: GUIDANCE_OFFICE,
-      permission: GUIDANCE_OFFICE,
-      case_id: caseId,
-    });
+  const getRelatedAttachments = useCallback(async () => {
+    return [];
   }, []);
-
-  const getStudentHistory = useCallback((studentName) => {
-    const s = mockStore.getState();
-    return {
-      incidents: s.incidents.filter(i =>
-        i.student_name.toLowerCase() === studentName.toLowerCase()
-      ),
-      referrals: s.referrals.filter(r =>
-        r.student_name.toLowerCase() === studentName.toLowerCase()
-      ),
-      meetings: s.meetings.filter(m =>
-        m.student_name.toLowerCase() === studentName.toLowerCase()
-      ),
-      assessments: s.assessments.filter(a =>
-        a.student_name.toLowerCase() === studentName.toLowerCase()
-      ),
-      sanctions: s.sanctions.filter(sn =>
-        sn.student_name.toLowerCase() === studentName.toLowerCase()
-      ),
-    };
-  }, []);
-
-  const getRelatedIncidents = useCallback((studentName) => {
-    const s = mockStore.getState();
-    return s.incidents.filter(i =>
-      i.student_name.toLowerCase() === studentName.toLowerCase()
-    );
-  }, []);
-
-  const getRelatedAttachments = useCallback((caseId) => {
-    const s = mockStore.getState();
-    return s.attachments.filter(a => a.case_id === caseId);
-  }, []);
-
-  const isLoading = false;
 
   return {
-    referralsToGuidance,
-    referralsFromGuidance,
-    incidentsAssignedToGuidance,
-    guidanceCases,
-    guidanceMeetings,
-    guidanceAssessments,
-    guidanceNotifications,
+    ...data,
     pendingReferrals,
     upcomingMeetings,
     openCases,
     pendingReferralCount: pendingReferrals.length,
     openCasesCount: openCases.length,
     upcomingMeetingsCount: upcomingMeetings.length,
-    totalReferralsCount: referralsToGuidance.length,
+    totalReferralsCount: data.referralsToGuidance.length,
     acceptReferral,
     rejectReferral,
     respondWithType,
@@ -203,13 +207,6 @@ export function useGuidanceData() {
     getStudentHistory,
     getRelatedIncidents,
     getRelatedAttachments,
-    isLoading,
-    allReferrals: state.referrals,
-    allIncidents: state.incidents,
-    allMeetings: state.meetings,
-    allAssessments: state.assessments,
-    allNotifications: state.notifications,
-    allAttachments: state.attachments,
-    allSanctions: state.sanctions,
+    refetch: fetchAll,
   };
 }

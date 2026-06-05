@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGuidanceData } from '../hooks/useGuidanceData';
 
@@ -16,12 +16,43 @@ export default function StudentProfilePage() {
   const { studentName } = useParams();
   const navigate = useNavigate();
   const decodedName = decodeURIComponent(studentName || '');
-  const { getStudentHistory } = useGuidanceData();
+  const { getStudentHistory, isLoading: globalLoading } = useGuidanceData();
+  const [history, setHistory] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const history = useMemo(
-    () => decodedName ? getStudentHistory(decodedName) : null,
-    [decodedName, getStudentHistory]
-  );
+  useEffect(() => {
+    if (!decodedName) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    getStudentHistory(decodedName)
+      .then(h => { setHistory(h); setLoading(false); })
+      .catch(e => { setError(e.message); setLoading(false); });
+  }, [decodedName, getStudentHistory]);
+
+  if (loading || globalLoading) {
+    return (
+      <div>
+        <div className="page-header">
+          <h1 className="page-title">Student Profile</h1>
+        </div>
+        <div className="card empty-state" style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading student profile...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <div className="page-header">
+          <h1 className="page-title">Student Profile</h1>
+        </div>
+        <div className="card empty-state" style={{ color: '#c62828' }}>Error: {error}</div>
+      </div>
+    );
+  }
 
   if (!decodedName || !history) {
     return (

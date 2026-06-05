@@ -11,8 +11,9 @@ export default function CaseTimelinePage() {
     guidanceMeetings,
     guidanceAssessments,
     allIncidents,
+    isLoading,
+    error,
   } = useGuidanceData();
-
   const [filterStatus, setFilterStatus] = useState('all');
 
   const timelineEvents = useMemo(() => {
@@ -98,6 +99,14 @@ export default function CaseTimelinePage() {
     events.sort((a, b) => new Date(b.date) - new Date(a.date));
     return events;
   }, [referralsToGuidance, referralsFromGuidance, incidentsAssignedToGuidance, guidanceMeetings, guidanceAssessments]);
+
+  if (isLoading) {
+    return <div className="card empty-state" style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading timeline...</div>;
+  }
+
+  if (error) {
+    return <div className="card empty-state" style={{ padding: 40, textAlign: 'center', color: '#c62828' }}>Error: {error}</div>;
+  }
 
   const filteredEvents = filterStatus === 'all'
     ? timelineEvents

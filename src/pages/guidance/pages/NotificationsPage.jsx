@@ -11,7 +11,15 @@ function priorityClass(priority) {
 }
 
 export default function NotificationsPage() {
-  const { guidanceNotifications, allNotifications } = useGuidanceData();
+  const { guidanceNotifications, allNotifications, isLoading, error } = useGuidanceData();
+
+  if (isLoading) {
+    return <div className="card empty-state" style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading notifications...</div>;
+  }
+
+  if (error) {
+    return <div className="card empty-state" style={{ padding: 40, textAlign: 'center', color: '#c62828' }}>Error: {error}</div>;
+  }
 
   const notifications = guidanceNotifications.length > 0 ? guidanceNotifications : allNotifications.slice(0, 5);
 
