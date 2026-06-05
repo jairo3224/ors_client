@@ -39,6 +39,14 @@ import CasesPage              from '../pages/chairperson/CasesPage';
 import InboxPage              from '../pages/chairperson/InboxPage';
 import ChairpersonSettingsPage from '../pages/chairperson/SettingsPage';  // NEW
 
+// Guidance sub-pages
+import GuidanceOverviewPage      from '../pages/guidance/pages/OverviewPage';
+import GuidanceReferralInboxPage  from '../pages/guidance/pages/ReferralInboxPage';
+import GuidanceSessionsPage      from '../pages/guidance/pages/CounselingSessionsPage';
+import GuidanceCaseTimelinePage  from '../pages/guidance/pages/CaseTimelinePage';
+import GuidanceNotificationsPage from '../pages/guidance/pages/NotificationsPage';
+import GuidanceStudentProfilePage from '../pages/guidance/pages/StudentProfilePage';
+
 // Teacher sub-pages
 import TeacherClassesPage     from '../pages/teacher/pages/ClassesPage';
 import TeacherRosterPage      from '../pages/teacher/pages/RosterPage';
@@ -112,7 +120,15 @@ export default function AppRouter() {
               <GuidanceDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<GuidanceOverviewPage />} />
+          <Route path="referrals" element={<GuidanceReferralInboxPage />} />
+          <Route path="sessions" element={<GuidanceSessionsPage />} />
+          <Route path="cases" element={<GuidanceCaseTimelinePage />} />
+          <Route path="notifications" element={<GuidanceNotificationsPage />} />
+          <Route path="student/:studentName" element={<GuidanceStudentProfilePage />} />
+          <Route path="*" element={<Navigate to="/guidance" replace />} />
+        </Route>
 
         {/* Chaplain - Layout wrapper with nested routes */}
         <Route
