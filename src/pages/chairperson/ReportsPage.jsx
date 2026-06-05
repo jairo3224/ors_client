@@ -18,7 +18,8 @@ const STATUS_CLASS = {
   pending: 'badge--pending',
   reviewed: 'badge--reviewed',
   forwarded: 'badge--forwarded',
-  open: 'badge--open',
+  in_progress: 'badge--in_progress',
+  resolved: 'badge--resolved',
   referred: 'badge--referred',
   closed: 'badge--closed',
 };
@@ -31,7 +32,7 @@ export default function ReportsPage() {
 
   const filtered = reports.filter(r => {
     const matchSearch = r.student_name.toLowerCase().includes(search.toLowerCase()) || r.subject.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === 'all' || r.status === filterStatus;
+    const matchStatus = filterStatus === 'all' || r.displayStatus === filterStatus;
     const matchSev = filterSeverity === 'all' || r.severity === filterSeverity;
     return matchSearch && matchStatus && matchSev;
   });
@@ -39,11 +40,15 @@ export default function ReportsPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">📄 Reports</h1>
-        <p className="page-subtitle">
-          {user?.department_name || 'Department'} ·{' '}
-          {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div>
+            <h1 className="page-title">📄 Reports</h1>
+            <p className="page-subtitle">
+              {user?.department_name || 'Department'} ·{' '}
+              {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="filters">
@@ -52,7 +57,10 @@ export default function ReportsPage() {
           <option value="all">All Status</option>
           <option value="pending">Pending</option>
           <option value="reviewed">Reviewed</option>
-          <option value="forwarded">Forwarded</option>
+          <option value="referred">Referred</option>
+          <option value="in_progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+          <option value="closed">Closed</option>
         </select>
         <select className="select" value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)}>
           <option value="all">All Severity</option>
@@ -74,12 +82,12 @@ export default function ReportsPage() {
             </div>
             <div className="report-card__labels">
               <span className={`badge ${SEVERITY_CLASS[report.severity] || 'badge--moderate'}`}>{report.severity}</span>
-              <span className={`badge ${STATUS_CLASS[report.status] || 'badge--pending'}`}>{report.status}</span>
+              <span className={`badge ${STATUS_CLASS[report.displayStatus] || ''}`}>{report.displayStatus}</span>
               <span className="report-card__date">{report.date_submitted}</span>
             </div>
           </div>
           <p className="report-card__desc">{report.description}</p>
-          {report.remarks.length > 0 && (
+          {report.remarks?.length > 0 && (
             <div className="remarks-box">
               <div className="remarks-box__heading">CHAIRPERSON REMARKS</div>
               {report.remarks.map((rem, i) => (
@@ -93,7 +101,11 @@ export default function ReportsPage() {
           )}
           <div className="report-card__actions">
             <button className="btn btn--sm" onClick={() => setRemarkTarget(report)}>Add Remark</button>
-            {report.status !== 'forwarded' && (
+            {/* Only allow forwarding if the incident is NOT already referred, closed, resolved, or in progress */}
+            {report.displayStatus !== 'referred' &&
+              report.displayStatus !== 'closed' &&
+              report.displayStatus !== 'resolved' &&
+              report.displayStatus !== 'in_progress' && (
               <button className="btn btn--sm btn--warning" onClick={() => { setForwardTarget(report); setForwardType('report'); }}>
                 Forward to OSAS
               </button>

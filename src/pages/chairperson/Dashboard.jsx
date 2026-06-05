@@ -12,11 +12,22 @@ import './components/Dashboard.css';
 
 const FORWARD_OPTIONS = ['OSAS'];
 
+// ── BACKEND → FRONTEND STATUS MAPPING ──
+const STATUS_MAP = {
+  'reported':     'pending',
+  'under_review': 'reviewed',
+  'referred':     'referred',
+  'in_progress':  'in_progress',
+  'resolved':     'resolved',
+  'closed':       'closed',
+};
+
 function Avatar({ name }) {
   const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   return <div className="avatar">{initials}</div>;
 }
 
+// ─── Modals (unchanged) ────────────────────────────
 function StudentModal({ student, reports, cases, onClose }) {
   if (!student) return null;
   const studentReports = reports.filter(r => r.student_id === student.id);
@@ -35,7 +46,6 @@ function StudentModal({ student, reports, cases, onClose }) {
           </div>
           <button className="modal__close" onClick={onClose}>✕</button>
         </div>
-
         <div className="modal__details">
           <div className="modal__field">
             <span className="modal__label">Year Level</span>
@@ -46,7 +56,6 @@ function StudentModal({ student, reports, cases, onClose }) {
             <span className="modal__value">{student.status}</span>
           </div>
         </div>
-
         {studentReports.length > 0 && (
           <>
             <h4 className="modal__section-title">Reports ({studentReports.length})</h4>
@@ -61,7 +70,6 @@ function StudentModal({ student, reports, cases, onClose }) {
             ))}
           </>
         )}
-
         {studentCases.length > 0 && (
           <>
             <h4 className="modal__section-title">Cases ({studentCases.length})</h4>
@@ -82,22 +90,42 @@ function StudentModal({ student, reports, cases, onClose }) {
 
 function RemarkModal({ report, onClose, onSubmit, chairpersonName }) {
   const [text, setText] = useState('');
+  const [responseType, setResponseType] = useState('remark');
   if (!report) return null;
 
   return (
     <div className="modal" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal__box">
         <div className="modal__header">
-          <h3>Add Remark</h3>
+          <h3>Add Response</h3>
           <button className="modal__close" onClick={onClose}>✕</button>
         </div>
         <div className="modal__context">
           <strong>{report.student_name}</strong> · {report.subject} · {report.teacher_name}
         </div>
-        <textarea className="textarea" placeholder="Enter your assessment or remark..." value={text} onChange={e => setText(e.target.value)} />
+        <div className="form-group">
+          <label className="form-label">Response Type</label>
+          <select className="select" value={responseType} onChange={e => setResponseType(e.target.value)}>
+            <option value="remark">Remark</option>
+            <option value="assessment">Assessment</option>
+            <option value="recommendation">Recommendation</option>
+          </select>
+        </div>
+        <textarea
+          className="textarea"
+          placeholder="Enter your response..."
+          value={text}
+          onChange={e => setText(e.target.value)}
+        />
         <div className="modal__actions">
           <button className="btn btn--outline" onClick={onClose}>Cancel</button>
-          <button className="btn" disabled={!text.trim()} onClick={() => { onSubmit(report.id, text, chairpersonName); onClose(); }}>Submit Remark</button>
+          <button
+            className="btn"
+            disabled={!text.trim()}
+            onClick={() => { onSubmit(report.id, text, responseType, chairpersonName); onClose(); }}
+          >
+            Submit
+          </button>
         </div>
       </div>
     </div>
@@ -116,7 +144,6 @@ function ForwardModal({ item, type, onClose, onSubmit }) {
           <h3>Refer / Forward {type === 'case' ? 'Case' : 'Report'}</h3>
           <button className="modal__close" onClick={onClose}>✕</button>
         </div>
-
         <div className="form-group">
           <label className="form-label">Forward to</label>
           <div className="forward-options">
@@ -131,12 +158,10 @@ function ForwardModal({ item, type, onClose, onSubmit }) {
             ))}
           </div>
         </div>
-
         <div className="form-group">
           <label className="form-label">Referral Note (optional)</label>
           <textarea className="textarea" placeholder="Add context or instructions..." value={note} onChange={e => setNote(e.target.value)} />
         </div>
-
         <div className="modal__actions">
           <button className="btn btn--outline" onClick={onClose}>Cancel</button>
           <button className="btn btn--warning" disabled={!destination} onClick={() => { onSubmit(item.id, destination, note, type); onClose(); }}>Forward</button>
@@ -146,6 +171,7 @@ function ForwardModal({ item, type, onClose, onSubmit }) {
   );
 }
 
+// ─── DASHBOARD COMPONENT ──────────────────────────
 export default function Dashboard() {
   const { user } = useAuth();
   const deptId = user?.department_id;
@@ -154,19 +180,24 @@ export default function Dashboard() {
   const { reports, setReports, loading: reportsLoading } = useReports(deptId);
   const { cases, setCases, loading: casesLoading } = useCases(deptId);
   const { inbox, setInbox, loading: inboxLoading } = useInbox(deptId);
-  const { addRemark, forwardToOSAS, respondToInbox } = useChairpersonMutations();
+  const { addRemark, forwardToOSAS, acceptReferral, rejectReferral, respondToInbox } = useChairpersonMutations();
 
   const loading = studentsLoading || reportsLoading || casesLoading || inboxLoading;
+
+  // ── Map backend status to display status ──
+  const mappedReports = reports.map(r => ({
+    ...r,
+    displayStatus: STATUS_MAP[r.status] || r.status,
+  }));
 
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [remarkTarget, setRemarkTarget] = useState(null);
   const [forwardTarget, setForwardTarget] = useState(null);
   const [forwardType, setForwardType] = useState(null);
 
-  const handleAddRemark = useCallback(async (reportId, text, authorName) => {
+  const handleAddRemark = useCallback(async (reportId, text, responseType, authorName) => {
     try {
-      await addRemark(reportId, text);
-      // Optionally refetch or optimistically update
+      await addRemark(reportId, text, responseType);
     } catch (err) {
       console.error(err);
     }
@@ -175,33 +206,51 @@ export default function Dashboard() {
   const handleForward = useCallback(async (itemId, destination, note, type) => {
     try {
       await forwardToOSAS(itemId, type, destination, note);
-      // Optimistically update local state
       if (type === 'case') {
         setCases(prev => prev.map(c => c.id === itemId ? { ...c, status: 'referred' } : c));
       } else {
-        setReports(prev => prev.map(r => r.id === itemId ? { ...r, status: 'forwarded' } : r));
+        setReports(prev => prev.map(r => r.id === itemId ? { ...r, status: 'referred' } : r));
       }
     } catch (err) {
       console.error(err);
     }
   }, [forwardToOSAS, setCases, setReports]);
 
-  const handleInboxResponse = useCallback(async (referralId, responseText) => {
+  const handleAcceptReferral = useCallback(async (referralId) => {
     try {
-      await respondToInbox(referralId, responseText);
+      await acceptReferral(referralId);
+      setInbox(prev => prev.map(i => i.id === referralId ? { ...i, status: 'accepted' } : i));
+    } catch (err) {
+      console.error(err);
+    }
+  }, [acceptReferral, setInbox]);
+
+  const handleRejectReferral = useCallback(async (referralId, reason) => {
+    try {
+      await rejectReferral(referralId, reason);
+      setInbox(prev => prev.map(i => i.id === referralId ? { ...i, status: 'rejected' } : i));
+    } catch (err) {
+      console.error(err);
+    }
+  }, [rejectReferral, setInbox]);
+
+  const handleInboxResponse = useCallback(async (referralId, responseText, responseType) => {
+    try {
+      await respondToInbox(referralId, responseText, responseType);
       setInbox(prev => prev.map(i => i.id === referralId ? { ...i, status: 'responded', response: responseText } : i));
     } catch (err) {
       console.error(err);
     }
   }, [respondToInbox, setInbox]);
 
-  const pendingCount = reports.filter(r => r.status === 'pending').length;
+  // Counts based on mapped status
+  const pendingCount = mappedReports.filter(r => r.displayStatus === 'pending').length;
   const openCaseCount = cases.filter(c => c.status === 'open').length;
   const inboxPendingCount = inbox.filter(i => i.status === 'pending').length;
 
   const outletContext = {
     students,
-    reports,
+    reports: mappedReports,   // ← pass mapped reports
     cases,
     inbox,
     loading,
@@ -211,6 +260,8 @@ export default function Dashboard() {
     setForwardType,
     handleAddRemark,
     handleForward,
+    handleAcceptReferral,
+    handleRejectReferral,
     handleInboxResponse,
     user,
   };
@@ -229,7 +280,7 @@ export default function Dashboard() {
 
       <StudentModal
         student={selectedStudent}
-        reports={reports}
+        reports={mappedReports}
         cases={cases}
         onClose={() => setSelectedStudent(null)}
       />
