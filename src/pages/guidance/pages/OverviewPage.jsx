@@ -11,7 +11,17 @@ export default function OverviewPage() {
     referralsToGuidance,
     upcomingMeetings,
     openCases,
+    isLoading,
+    error,
   } = useGuidanceData();
+
+  if (isLoading) {
+    return <div className="card empty-state" style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading overview...</div>;
+  }
+
+  if (error) {
+    return <div className="card empty-state" style={{ padding: 40, textAlign: 'center', color: '#c62828' }}>Error: {error}</div>;
+  }
 
   return (
     <div>
