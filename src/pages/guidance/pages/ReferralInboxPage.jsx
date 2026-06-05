@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGuidanceData } from '../hooks/useGuidanceData';
 
@@ -31,6 +31,8 @@ export default function ReferralInboxPage() {
     getRelatedIncidents,
     getRelatedAttachments,
     addAttachment,
+    isLoading,
+    error,
   } = useGuidanceData();
 
   const [activeTab, setActiveTab] = useState('inbox');
@@ -45,64 +47,120 @@ export default function ReferralInboxPage() {
   const [chaplainDesc, setChaplainDesc] = useState('');
   const [attachmentFile, setAttachmentFile] = useState(null);
 
-  const relatedIncidents = selectedReferral
-    ? getRelatedIncidents(selectedReferral.student_name)
-    : [];
+  const [relatedIncidents, setRelatedIncidents] = useState([]);
+  const [relatedAttachments, setRelatedAttachments] = useState([]);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const relatedAttachments = selectedReferral
-    ? getRelatedAttachments(selectedReferral.id)
-    : [];
+  useEffect(() => {
+    if (!selectedReferral) {
+      setRelatedIncidents([]);
+      setRelatedAttachments([]);
+      return;
+    }
+    getRelatedIncidents(selectedReferral.student_name).then(setRelatedIncidents);
+    getRelatedAttachments(selectedReferral.id).then(setRelatedAttachments);
+  }, [selectedReferral, getRelatedIncidents, getRelatedAttachments]);
 
-  const handleAccept = (refId) => {
-    acceptReferral(refId, 'Referral accepted. Guidance Office will handle the case.');
-    setSelectedReferral(null);
+  const handleAccept = async (refId) => {
+    setActionLoading(true);
+    try {
+      await acceptReferral(refId);
+      setSelectedReferral(null);
+    } catch (e) {
+      alert('Failed to accept referral: ' + e.message);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleReject = (refId) => {
+  const handleReject = async (refId) => {
     const note = prompt('Reason for rejection:');
     if (note !== null) {
-      rejectReferral(refId, note || 'Referral declined.');
+      setActionLoading(true);
+      try {
+        await rejectReferral(refId, note || 'Referral declined.');
+        setSelectedReferral(null);
+      } catch (e) {
+        alert('Failed to reject referral: ' + e.message);
+      } finally {
+        setActionLoading(false);
+      }
     }
-    setSelectedReferral(null);
   };
 
-  const handleRespond = (refId) => {
+  const handleRespond = async (refId) => {
     if (!responseContent.trim()) return;
+    setActionLoading(true);
     const typeLabel = RESPONSE_TYPES.find(t => t.value === responseType)?.label || responseType;
     const fullResponse = `[${typeLabel}]\n${responseContent.trim()}`;
-    respondWithType(refId, responseType, fullResponse);
-    setResponseContent('');
-    setResponseType('assessment');
-    setSelectedReferral(null);
+    try {
+      await respondWithType(refId, responseType, fullResponse);
+      setResponseContent('');
+      setResponseType('assessment');
+      setSelectedReferral(null);
+    } catch (e) {
+      alert('Failed to submit response: ' + e.message);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleReturnToOSAS = (refId) => {
+  const handleReturnToOSAS = async (refId) => {
     if (!returnFindings.trim()) return;
-    returnToOSAS(refId, returnFindings.trim());
-    setReturnFindings('');
-    setReturnToOSASMode(false);
-    setSelectedReferral(null);
+    setActionLoading(true);
+    try {
+      await returnToOSAS(refId, returnFindings.trim());
+      setReturnFindings('');
+      setReturnToOSASMode(false);
+      setSelectedReferral(null);
+    } catch (e) {
+      alert('Failed to return to OSAS: ' + e.message);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleReferToChaplain = (ref) => {
-    referToChaplain(
-      ref.id,
-      ref.student_name,
-      ref.student_id,
-      chaplainSubject || `Spiritual Support - ${ref.student_name}`,
-      chaplainDesc || `Referred from Guidance Office: ${ref.description}`
-    );
-    setReferToChaplainMode(false);
-    setChaplainSubject('');
-    setChaplainDesc('');
-    setSelectedReferral(null);
+  const handleReferToChaplain = async (ref) => {
+    setActionLoading(true);
+    try {
+      await referToChaplain(
+        ref.id,
+        ref.student_name,
+        ref.student_id,
+        chaplainSubject || `Spiritual Support - ${ref.student_name}`,
+        chaplainDesc || `Referred from Guidance Office: ${ref.description}`
+      );
+      setReferToChaplainMode(false);
+      setChaplainSubject('');
+      setChaplainDesc('');
+      setSelectedReferral(null);
+    } catch (e) {
+      alert('Failed to refer to Chaplain: ' + e.message);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleAttachmentUpload = (refId) => {
+  const handleAttachmentUpload = async (refId) => {
     if (!attachmentFile) return;
-    addAttachment(refId, attachmentFile.name, attachmentFile.type, attachmentFile.size);
-    setAttachmentFile(null);
+    setActionLoading(true);
+    try {
+      await addAttachment(refId, attachmentFile.name, attachmentFile.type, attachmentFile.size);
+      setAttachmentFile(null);
+    } catch (e) {
+      alert('Failed to upload attachment: ' + e.message);
+    } finally {
+      setActionLoading(false);
+    }
   };
+
+  if (isLoading) {
+    return <div className="card empty-state" style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading referrals...</div>;
+  }
+
+  if (error) {
+    return <div className="card empty-state" style={{ padding: 40, textAlign: 'center', color: '#c62828' }}>Error: {error}</div>;
+  }
 
   const referrals = activeTab === 'inbox' ? referralsToGuidance : referralsFromGuidance;
 
@@ -212,10 +270,10 @@ export default function ReferralInboxPage() {
           {/* Pending — Accept / Reject */}
           {activeTab === 'inbox' && selectedReferral.status === 'pending' && (
             <div className="report-card__actions" style={{ marginTop: 16 }}>
-              <button className="btn btn--success btn--sm" onClick={() => handleAccept(selectedReferral.id)}>
+              <button className="btn btn--success btn--sm" disabled={actionLoading} onClick={() => handleAccept(selectedReferral.id)}>
                 ✓ Accept Referral
               </button>
-              <button className="btn btn--danger btn--sm" onClick={() => handleReject(selectedReferral.id)}>
+              <button className="btn btn--danger btn--sm" disabled={actionLoading} onClick={() => handleReject(selectedReferral.id)}>
                 ✕ Reject Referral
               </button>
               <button className="btn btn--outline btn--sm" onClick={() => setSelectedReferral(null)}>

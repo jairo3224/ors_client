@@ -9,7 +9,7 @@ function sessionStatusClass(status) {
 
 export default function CounselingSessionsPage() {
   const navigate = useNavigate();
-  const { guidanceMeetings, addSession } = useGuidanceData();
+  const { guidanceMeetings, addSession, isLoading, error } = useGuidanceData();
   const [showForm, setShowForm] = useState(false);
   const [newSession, setNewSession] = useState({
     student_name: '',
@@ -20,16 +20,28 @@ export default function CounselingSessionsPage() {
     agenda: '',
   });
 
-  const handleCreate = () => {
+  if (isLoading) {
+    return <div className="card empty-state" style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading sessions...</div>;
+  }
+
+  if (error) {
+    return <div className="card empty-state" style={{ padding: 40, textAlign: 'center', color: '#c62828' }}>Error: {error}</div>;
+  }
+
+  const handleCreate = async () => {
     if (!newSession.student_name.trim() || !newSession.date || !newSession.time) return;
-    addSession({
-      student_name: newSession.student_name.trim(),
-      title: newSession.title.trim() || 'Counseling Session',
-      date: newSession.date,
-      time: newSession.time,
-      location: newSession.location,
-      agenda: newSession.agenda.trim(),
-    });
+    try {
+      await addSession({
+        student_name: newSession.student_name.trim(),
+        title: newSession.title.trim() || 'Counseling Session',
+        date: newSession.date,
+        time: newSession.time,
+        location: newSession.location,
+        agenda: newSession.agenda.trim(),
+      });
+    } catch (e) {
+      alert('Failed to create session: ' + e.message);
+    }
     setNewSession({ student_name: '', title: '', date: '', time: '', location: 'Guidance Office', agenda: '' });
     setShowForm(false);
   };
