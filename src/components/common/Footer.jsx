@@ -32,7 +32,7 @@ const Footer = () => {
           <h4 className="footer__heading">Quick Links</h4>
           <ul className="footer__links">
             <li><Link to="/chairperson/dashboard">Chairperson Dashboard</Link></li>
-            <li><Link to="/guidance/dashboard">Guidance Dashboard</Link></li>
+            <li><Link to="/guidance">Guidance Dashboard</Link></li>
             <li><Link to="/chaplain/dashboard">Chaplain Dashboard</Link></li>
             <li><Link to="/teacher/dashboard">Teacher Dashboard</Link></li>
             <li><Link to="/osas">OSAS Admin</Link></li>
