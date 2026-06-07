@@ -2,7 +2,7 @@
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import apiService from '../../services/api';
+import { useChaplainSessions } from './hooks';
 
 export default function Sessions() {
   const { user } = useAuth();
@@ -10,12 +10,10 @@ export default function Sessions() {
   
   const isChaplain = user?.role_id === 3;
   
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
+  const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   
   const [scheduleForm, setScheduleForm] = useState({
@@ -26,6 +24,8 @@ export default function Sessions() {
     type: 'individual',
     notes: ''
   });
+
+  const [scheduleError, setScheduleError] = useState('');
 
   const sessionTypes = {
     individual: { label: 'Individual', color: '#1a73e8', bg: '#e8f0fe' },
@@ -39,138 +39,46 @@ export default function Sessions() {
     if (!isChaplain) navigate('/unauthorized');
   }, [isChaplain, navigate]);
 
-  useEffect(() => {
-    if (isChaplain) { fetchSessions(); loadLocalSessions(); }
-  }, [isChaplain]);
-
-  const fetchSessions = async () => {
-    try {
-      setLoading(true);
-      const response = await apiService.getSessions();
-      if (response.success) setSessions(response.data.sessions || []);
-    } catch (error) {
-      console.error('Failed to fetch sessions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadLocalSessions = () => {
-    const savedSessions = JSON.parse(localStorage.getItem('chaplainSessions') || '[]');
-    const completedCancelledIds = JSON.parse(localStorage.getItem('completedCancelledSessions') || '[]');
-    if (savedSessions.length > 0) {
-      setSessions(prev => {
-        const existingIds = new Set(prev.map(s => s.id));
-        const newSessions = savedSessions.filter(s => 
-          !existingIds.has(s.id) && 
-          !completedCancelledIds.includes(s.id)
-        );
-        return [...newSessions, ...prev];
-      });
-    }
-  };
-
-  const markSessionInLocalStorage = (sessionId, status) => {
-    const savedSessions = JSON.parse(localStorage.getItem('chaplainSessions') || '[]');
-    const updatedSessions = savedSessions.map(s => 
-      s.id === sessionId ? { ...s, status } : s
-    );
-    localStorage.setItem('chaplainSessions', JSON.stringify(updatedSessions));
-    
-    const completedOrCancelledIds = JSON.parse(localStorage.getItem('completedCancelledSessions') || '[]');
-    if (!completedOrCancelledIds.includes(sessionId)) {
-      completedOrCancelledIds.push(sessionId);
-      localStorage.setItem('completedCancelledSessions', JSON.stringify(completedOrCancelledIds));
-    }
-  };
+  // Use the hook
+  const {
+    sortedSessions,
+    stats,
+    earliestUpcoming,
+    acceptedStudents,
+    loading,
+    error,
+    refetch,
+    scheduleSession: hookScheduleSession,
+    cancelSession: hookCancelSession,
+    completeSession: hookCompleteSession
+  } = useChaplainSessions(filter, searchTerm);
 
   const handleScheduleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const response = await apiService.scheduleSession(scheduleForm);
-      if (response.success) {
-        setShowScheduleModal(false);
-        setScheduleForm({ studentName: '', studentId: '', date: '', time: '', type: 'individual', notes: '' });
-        fetchSessions();
-      } else { saveSessionLocally(); }
-    } catch (error) {
-      console.log('API not available, saving locally');
-      saveSessionLocally();
+    setScheduleError('');
+    
+    if (!scheduleForm.studentName) {
+      setScheduleError('Please select a student from accepted referrals.');
+      return;
     }
-  };
-
-  const saveSessionLocally = () => {
-    const newSession = {
-      id: Date.now().toString(),
-      studentName: scheduleForm.studentName,
-      studentId: scheduleForm.studentId,
-      date: scheduleForm.date,
-      time: scheduleForm.time,
-      type: scheduleForm.type,
-      status: 'upcoming',
-      notes: scheduleForm.notes
-    };
-    const existingSessions = JSON.parse(localStorage.getItem('chaplainSessions') || '[]');
-    existingSessions.push(newSession);
-    localStorage.setItem('chaplainSessions', JSON.stringify(existingSessions));
-    setSessions(prev => [newSession, ...prev]);
-    setShowScheduleModal(false);
-    setScheduleForm({ studentName: '', studentId: '', date: '', time: '', type: 'individual', notes: '' });
+    
+    const result = await hookScheduleSession(scheduleForm);
+    if (result.success) {
+      setShowScheduleModal(false);
+      setScheduleForm({ studentName: '', studentId: '', date: '', time: '', type: 'individual', notes: '' });
+    } else {
+      setScheduleError(result.error || 'Failed to schedule session');
+    }
   };
 
   const cancelSession = async (sessionId) => {
     if (window.confirm('Are you sure you want to cancel this session?')) {
-      try {
-        const response = await apiService.cancelSession(sessionId);
-        if (response.success) {
-          markSessionInLocalStorage(sessionId, 'cancelled');
-          fetchSessions();
-        }
-      } catch (error) {
-        setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'cancelled' } : s));
-        markSessionInLocalStorage(sessionId, 'cancelled');
-      }
+      await hookCancelSession(sessionId);
     }
   };
 
   const completeSession = async (sessionId) => {
-    try {
-      const response = await apiService.completeSession(sessionId);
-      if (response.success) {
-        markSessionInLocalStorage(sessionId, 'completed');
-        fetchSessions();
-      }
-    } catch (error) {
-      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'completed' } : s));
-      markSessionInLocalStorage(sessionId, 'completed');
-    }
-  };
-
-  const filteredSessions = sessions.filter(session => {
-    if (filter !== 'all' && session.status !== filter) return false;
-    if (searchTerm) {
-      const s = searchTerm.toLowerCase();
-      return (session.studentName?.toLowerCase().includes(s) || session.studentId?.toLowerCase().includes(s) || session.type?.toLowerCase().includes(s) || session.notes?.toLowerCase().includes(s));
-    }
-    return true;
-  });
-
-  const sortedSessions = [...filteredSessions].sort((a, b) => {
-    if (a.status === 'upcoming' && b.status !== 'upcoming') return -1;
-    if (a.status !== 'upcoming' && b.status === 'upcoming') return 1;
-    return new Date(b.date) - new Date(a.date);
-  });
-
-  const earliestUpcoming = [...sessions]
-    .filter(s => s.status === 'upcoming')
-    .sort((a, b) => new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time))
-    .slice(0, 5);
-
-  const stats = {
-    total: sessions.length,
-    upcoming: sessions.filter(s => s.status === 'upcoming').length,
-    completed: sessions.filter(s => s.status === 'completed').length,
-    cancelled: sessions.filter(s => s.status === 'cancelled').length
+    await hookCompleteSession(sessionId);
   };
 
   if (!isChaplain) return null;
@@ -184,6 +92,20 @@ export default function Sessions() {
         </div>
         <button onClick={() => setShowScheduleModal(true)} style={{ background: '#0d904f', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: 8 }}>📅 + Schedule Session</button>
       </div>
+
+      {loading && (
+        <div style={{ background: '#fff', borderRadius: 12, padding: '60px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
+          <div style={{ fontSize: 18, color: '#4a2d6e', fontWeight: 600 }}>Loading Sessions...</div>
+        </div>
+      )}
+
+      {error && (
+        <div style={{ background: '#fce8e6', color: '#d93025', padding: '16px', borderRadius: 8, marginBottom: 24 }}>
+          Error: {error}
+          <button onClick={refetch} style={{ marginLeft: 16, background: '#d93025', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: 4, cursor: 'pointer' }}>Retry</button>
+        </div>
+      )}
 
       {!loading && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 24 }}>
@@ -241,13 +163,6 @@ export default function Sessions() {
               </button>
             ))}
           </div>
-        </div>
-      )}
-
-      {loading && (
-        <div style={{ background: '#fff', borderRadius: 12, padding: '60px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
-          <div style={{ fontSize: 18, color: '#4a2d6e', fontWeight: 600 }}>Loading Sessions...</div>
         </div>
       )}
 
@@ -346,25 +261,109 @@ export default function Sessions() {
 
       {/* Schedule Modal */}
       {showScheduleModal && (
-        <div onClick={() => setShowScheduleModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
+        <div onClick={() => { setShowScheduleModal(false); setScheduleError(''); }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, padding: 32, maxWidth: 500, width: '100%', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <h2 style={{ color: '#2e1a47', fontSize: '20px', fontWeight: 600, margin: 0 }}>📅 Schedule New Session</h2>
-              <button onClick={() => setShowScheduleModal(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#64748b' }}>✕</button>
+              <button onClick={() => { setShowScheduleModal(false); setScheduleError(''); }} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#64748b' }}>✕</button>
             </div>
+            {scheduleError && (
+              <div style={{ background: '#fce8e6', color: '#d93025', padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: '14px' }}>
+                {scheduleError}
+              </div>
+            )}
             <form onSubmit={handleScheduleSubmit}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div><label style={{ display: 'block', marginBottom: 8, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>Student Name *</label><input type="text" required value={scheduleForm.studentName} onChange={(e) => setScheduleForm({...scheduleForm, studentName: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#333', fontSize: '14px', boxSizing: 'border-box' }} placeholder="Enter student name" /></div>
-                <div><label style={{ display: 'block', marginBottom: 8, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>Student ID</label><input type="text" value={scheduleForm.studentId} onChange={(e) => setScheduleForm({...scheduleForm, studentId: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#333', fontSize: '14px', boxSizing: 'border-box' }} placeholder="Enter student ID (optional)" /></div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div><label style={{ display: 'block', marginBottom: 8, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>Date *</label><input type="date" required value={scheduleForm.date} onChange={(e) => setScheduleForm({...scheduleForm, date: e.target.value})} min={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#333', fontSize: '14px', boxSizing: 'border-box' }} /></div>
-                  <div><label style={{ display: 'block', marginBottom: 8, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>Time *</label><input type="time" required value={scheduleForm.time} onChange={(e) => setScheduleForm({...scheduleForm, time: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#333', fontSize: '14px', boxSizing: 'border-box' }} /></div>
+                {/* Student Select Dropdown - Only shows accepted referrals */}
+                <div>
+                  <label style={{ display: 'block', marginBottom: 8, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>
+                    Student *
+                  </label>
+                  {!acceptedStudents || acceptedStudents.length === 0 ? (
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#fff3cd', 
+                      borderRadius: 6, 
+                      color: '#856404', 
+                      fontSize: '13px',
+                      border: '1px solid #ffc107'
+                    }}>
+                      ⚠️ No accepted referrals yet. Accept a referral first to schedule a session.
+                    </div>
+                  ) : (
+                    <select
+                      required
+                      value={`${scheduleForm.studentName}|${scheduleForm.studentId}`}
+                      onChange={(e) => {
+                        const [name, id] = e.target.value.split('|');
+                        setScheduleForm({
+                          ...scheduleForm,
+                          studentName: name,
+                          studentId: id
+                        });
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 6,
+                        border: '2px solid #e2e8f0',
+                        background: '#f8fafc',
+                        color: '#333',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="|">-- Select a student --</option>
+                      {acceptedStudents.map((student, index) => (
+                        <option 
+                          key={index} 
+                          value={`${student.student_name}|${student.student_id || ''}`}
+                        >
+                          {student.student_name} ({student.student_id}) - {student.department_name || 'No Department'}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
-                <div><label style={{ display: 'block', marginBottom: 8, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>Session Type *</label><select required value={scheduleForm.type} onChange={(e) => setScheduleForm({...scheduleForm, type: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#333', fontSize: '14px', boxSizing: 'border-box' }}><option value="individual">Individual Counseling</option><option value="group">Group Session</option><option value="assessment">Spiritual Assessment</option><option value="follow-up">Follow-up Meeting</option><option value="crisis">Crisis Intervention</option></select></div>
-                <div><label style={{ display: 'block', marginBottom: 8, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>Notes</label><textarea value={scheduleForm.notes} onChange={(e) => setScheduleForm({...scheduleForm, notes: e.target.value})} rows={3} style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#333', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }} placeholder="Add any notes..." /></div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: 8, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>Student ID</label>
+                  <input 
+                    type="text" 
+                    value={scheduleForm.studentId} 
+                    readOnly
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '2px solid #e2e8f0', background: '#e9ecef', color: '#666', fontSize: '14px', boxSizing: 'border-box' }} 
+                    placeholder="Auto-filled from selection" 
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 8, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>Date *</label>
+                    <input type="date" required value={scheduleForm.date} onChange={(e) => setScheduleForm({...scheduleForm, date: e.target.value})} min={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#333', fontSize: '14px', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 8, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>Time *</label>
+                    <input type="time" required value={scheduleForm.time} onChange={(e) => setScheduleForm({...scheduleForm, time: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#333', fontSize: '14px', boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 8, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>Session Type *</label>
+                  <select required value={scheduleForm.type} onChange={(e) => setScheduleForm({...scheduleForm, type: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#333', fontSize: '14px', boxSizing: 'border-box' }}>
+                    <option value="individual">Individual Counseling</option>
+                    <option value="group">Group Session</option>
+                    <option value="assessment">Spiritual Assessment</option>
+                    <option value="follow-up">Follow-up Meeting</option>
+                    <option value="crisis">Crisis Intervention</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 8, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>Notes</label>
+                  <textarea value={scheduleForm.notes} onChange={(e) => setScheduleForm({...scheduleForm, notes: e.target.value})} rows={3} style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#333', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }} placeholder="Add any notes..." />
+                </div>
               </div>
               <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setShowScheduleModal(false)} style={{ background: 'none', border: '1px solid #64748b', color: '#64748b', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: '14px' }}>Cancel</button>
+                <button type="button" onClick={() => { setShowScheduleModal(false); setScheduleError(''); }} style={{ background: 'none', border: '1px solid #64748b', color: '#64748b', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: '14px' }}>Cancel</button>
                 <button type="submit" style={{ background: '#0d904f', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: 8 }}>📅 Schedule Session</button>
               </div>
             </form>

@@ -2,15 +2,13 @@
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import apiService from '../../services/api';
+import { useChaplainReferrals } from './hooks';
 
 export default function Referrals() {
   const { user } = useAuth();
   const navigate = useNavigate();
   
   const isChaplain = user?.role_id === 3;
-  const [referrals, setReferrals] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedReferral, setSelectedReferral] = useState(null);
@@ -24,55 +22,35 @@ export default function Referrals() {
     if (!isChaplain) navigate('/unauthorized');
   }, [isChaplain, navigate]);
 
-  useEffect(() => {
-    if (isChaplain) fetchAllReferrals();
-  }, [isChaplain]);
-
-  const fetchAllReferrals = async () => {
-    try {
-      setLoading(true);
-      const response = await apiService.getAllReferrals();
-      if (response.success) setReferrals(response.data.referrals || []);
-    } catch (error) {
-      console.error('Failed to fetch referrals:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use the hook instead of duplicating logic
+  const {
+    referrals,
+    filteredReferrals,
+    loading,
+    error,
+    refetch,
+    acceptReferral: hookAcceptReferral,
+    returnReferral: hookReturnReferral
+  } = useChaplainReferrals(filter);
 
   const acceptReferral = async (referralId) => {
-    try {
-      const response = await apiService.acceptReferral(referralId, {
-        status: 'accepted',
-        acceptedBy: `${user?.first_name} ${user?.last_name}`,
-        acceptedDate: new Date().toISOString()
-      });
-      if (response.success) {
-        setReferrals(prev => prev.map(ref => ref.id === referralId ? { ...ref, status: 'accepted' } : ref));
-      }
-    } catch (error) {
-      console.error('Failed to accept referral:', error);
+    const result = await hookAcceptReferral(referralId);
+    if (!result.success) {
+      console.error('Failed to accept referral:', result.error);
     }
   };
 
   const returnToOSAS = async (referralId) => {
     try {
-      const response = await apiService.returnReferral(referralId, {
-        ...returnForm,
-        returnedBy: `${user?.first_name} ${user?.last_name}`,
-        returnedDate: new Date().toISOString()
-      });
-      if (response.success) {
-        setReferrals(prev => prev.map(ref => ref.id === referralId ? { ...ref, status: 'returned', returnReason: returnForm.reason, returnNotes: returnForm.notes } : ref));
+      const result = await hookReturnReferral(referralId, returnForm);
+      if (result.success) {
         setShowReturnModal(false);
         setReturnForm({ reason: '', notes: '', status: 'returned' });
       }
-    } catch (error) {
-      console.error('Failed to return referral:', error);
+    } catch (err) {
+      console.error('Failed to return referral:', err);
     }
   };
-
-  const filteredReferrals = referrals.filter(ref => filter === 'all' ? true : ref.status === filter);
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -94,12 +72,34 @@ export default function Referrals() {
           <h1 style={{ color: '#2e1a47', fontSize: '24px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>📨 Referral Management</h1>
           <p style={{ color: '#64748b', fontSize: '14px', margin: '4px 0 0' }}>Manage all student referrals from OSAS</p>
         </div>
+        <button
+          onClick={refetch}
+          style={{
+            background: '#4a2d6e',
+            color: '#fff',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '14px'
+          }}
+        >
+          🔄 Refresh
+        </button>
       </div>
 
       {loading && (
         <div style={{ background: '#fff', borderRadius: 12, padding: '60px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📨</div>
           <div style={{ fontSize: 18, color: '#4a2d6e', fontWeight: 600 }}>Loading Referrals...</div>
+        </div>
+      )}
+
+      {error && (
+        <div style={{ background: '#fce8e6', color: '#d93025', padding: '16px', borderRadius: 8, marginBottom: 24 }}>
+          Error: {error}
+          <button onClick={refetch} style={{ marginLeft: 16, background: '#d93025', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: 4, cursor: 'pointer' }}>Retry</button>
         </div>
       )}
 

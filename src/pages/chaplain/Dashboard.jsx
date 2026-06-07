@@ -3,11 +3,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Navbar from './components/navbar';
-import apiService from '../../services/api';
+import { useChaplainDashboard } from './hooks';
 import Footer from '../../components/common/Footer';
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -15,20 +15,17 @@ export default function Dashboard() {
   
   const isSubPage = location.pathname !== '/chaplain' && location.pathname !== '/chaplain/dashboard';
   
-  const [stats, setStats] = useState({
-    totalReferred: 0,
-    activeCounseling: 0,
-    completedSessions: 0,
-    studentsThisMonth: 0,
-    pendingReferrals: 0,
-    casesReturned: 0,
-    upcomingSessions: 0,
-    unreadNotifications: 0
-  });
-  const [recentReferrals, setRecentReferrals] = useState([]);
-  const [upcomingSessions, setUpcomingSessions] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    stats,
+    recentReferrals,
+    sortedUpcomingSessions,
+    loading,
+    error,
+    refetch,
+    acceptReferral: hookAcceptReferral,
+    returnReferral: hookReturnReferral,
+    cancelSession: hookCancelSession,
+  } = useChaplainDashboard();
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedReferral, setSelectedReferral] = useState(null);
   const [returnForm, setReturnForm] = useState({
@@ -38,158 +35,49 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    if (!isChaplain) {
+    if (!isLoading && !isChaplain) {
       navigate('/unauthorized');
     }
-  }, [isChaplain, navigate]);
+  }, [isChaplain, isLoading, navigate]);
 
   useEffect(() => {
     if (isChaplain) {
-      fetchDashboardData();
-      loadSavedSessions();
-      const interval = setInterval(fetchNotifications, 30000);
-      return () => clearInterval(interval);
+      refetch && refetch();
     }
-  }, [isChaplain]);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      const response = await apiService.getDashboard();
-      if (response.success) {
-        setStats(response.data.stats);
-        setRecentReferrals(response.data.recentReferrals || []);
-        setUpcomingSessions(response.data.upcomingSessions || []);
-        setNotifications(response.data.notifications || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchNotifications = async () => {
-    try {
-      const response = await apiService.getNotificationCount();
-      if (response.success) {
-        setStats(prev => ({ ...prev, unreadNotifications: response.data.count }));
-      }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-    }
-  };
-
-  const loadSavedSessions = () => {
-    const savedSessions = JSON.parse(localStorage.getItem('chaplainSessions') || '[]');
-    const completedCancelledIds = JSON.parse(localStorage.getItem('completedCancelledSessions') || '[]');
-    
-    if (savedSessions.length > 0) {
-      setUpcomingSessions(prev => {
-        const existingIds = new Set(prev.map(s => s.id));
-        const newSessions = savedSessions.filter(s => 
-          !existingIds.has(s.id) && 
-          s.status === 'upcoming' && 
-          !completedCancelledIds.includes(s.id)
-        );
-        return [...newSessions, ...prev].filter(s => !completedCancelledIds.includes(s.id));
-      });
-    }
-  };
-
-  const markAsRead = async (id) => {
-    try {
-      const response = await apiService.markNotificationRead(id);
-      if (response.success) {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-        setStats(prev => ({ ...prev, unreadNotifications: Math.max(0, prev.unreadNotifications - 1) }));
-      }
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-    }
-  };
+  }, [isChaplain, refetch]);
 
   const acceptReferral = async (referralId) => {
     try {
-      const response = await apiService.acceptReferral(referralId, {
-        status: 'accepted',
-        acceptedBy: `${user?.first_name} ${user?.last_name}`,
-        acceptedDate: new Date().toISOString()
-      });
-      if (response.success) {
-        setRecentReferrals(prev => prev.map(ref => 
-          ref.id === referralId ? { ...ref, status: 'accepted' } : ref
-        ));
-        setStats(prev => ({
-          ...prev,
-          pendingReferrals: Math.max(0, prev.pendingReferrals - 1),
-          activeCounseling: prev.activeCounseling + 1
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to accept referral:', error);
+      await hookAcceptReferral(referralId);
+    } catch (err) {
+      console.error('Failed to accept referral:', err);
     }
   };
 
   const returnToOSAS = async (referralId) => {
     try {
-      const response = await apiService.returnReferral(referralId, {
-        ...returnForm,
-        returnedBy: `${user?.first_name} ${user?.last_name}`,
-        returnedDate: new Date().toISOString()
-      });
-      if (response.success) {
-        setRecentReferrals(prev => prev.map(ref => 
-          ref.id === referralId ? { ...ref, status: 'returned', returnReason: returnForm.reason, returnNotes: returnForm.notes } : ref
-        ));
-        setStats(prev => ({
-          ...prev,
-          pendingReferrals: Math.max(0, prev.pendingReferrals - 1),
-          casesReturned: prev.casesReturned + 1
-        }));
+      const res = await hookReturnReferral(referralId, returnForm);
+      if (res && res.success) {
         setShowReturnModal(false);
         setReturnForm({ reason: '', notes: '', status: 'returned' });
       }
-    } catch (error) {
-      console.error('Failed to return referral:', error);
+    } catch (err) {
+      console.error('Failed to return referral:', err);
     }
   };
 
   const cancelSession = async (sessionId) => {
     if (window.confirm('Are you sure you want to cancel this session?')) {
       try {
-        const response = await apiService.cancelSession(sessionId);
-        if (response.success) {
-          // Sync with localStorage
-          const completedOrCancelledIds = JSON.parse(localStorage.getItem('completedCancelledSessions') || '[]');
-          if (!completedOrCancelledIds.includes(sessionId)) {
-            completedOrCancelledIds.push(sessionId);
-            localStorage.setItem('completedCancelledSessions', JSON.stringify(completedOrCancelledIds));
-          }
-          fetchDashboardData();
+        const res = await hookCancelSession(sessionId);
+        if (res && res.success) {
+          refetch && refetch();
         }
-      } catch (error) {
-        const completedOrCancelledIds = JSON.parse(localStorage.getItem('completedCancelledSessions') || '[]');
-        if (!completedOrCancelledIds.includes(sessionId)) {
-          completedOrCancelledIds.push(sessionId);
-          localStorage.setItem('completedCancelledSessions', JSON.stringify(completedOrCancelledIds));
-        }
-        setUpcomingSessions(prev => prev.filter(s => s.id !== sessionId));
-        setStats(prev => ({
-          ...prev,
-          upcomingSessions: Math.max(0, prev.upcomingSessions - 1)
-        }));
+      } catch (err) {
+        console.error('Failed to cancel session:', err);
       }
     }
   };
-
-  // Filter out completed/cancelled sessions
-  const completedCancelledIds = JSON.parse(localStorage.getItem('completedCancelledSessions') || '[]');
-
-  // Sort upcoming sessions by closest date/time first, excluding completed/cancelled
-  const sortedUpcomingSessions = [...upcomingSessions]
-    .filter(s => s.status === 'upcoming' && !completedCancelledIds.includes(s.id))
-    .sort((a, b) => new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time));
 
   const pastoralStats = [
     { label: 'New Referrals', value: stats.pendingReferrals, icon: '📨', color: '#e8f0fe', textColor: '#1a73e8', path: '/chaplain/referrals' },
@@ -257,7 +145,7 @@ export default function Dashboard() {
 
             <div style={{ display: 'flex', gap: 8 }}>
               <button
-                onClick={fetchDashboardData}
+                onClick={refetch}
                 style={{
                   background: '#4a2d6e',
                   color: '#fff',
@@ -291,8 +179,35 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* Error State */}
+          {error && (
+            <div style={{
+              background: '#fce8e6',
+              color: '#d93025',
+              padding: '16px',
+              borderRadius: 8,
+              marginBottom: 24
+            }}>
+              Error: {error}
+              <button 
+                onClick={refetch}
+                style={{ 
+                  marginLeft: 16, 
+                  background: '#d93025', 
+                  color: '#fff', 
+                  border: 'none', 
+                  padding: '4px 12px', 
+                  borderRadius: 4, 
+                  cursor: 'pointer' 
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {/* Statistics Grid */}
-          {!loading && (
+          {!loading && !error && (
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -350,7 +265,7 @@ export default function Dashboard() {
           )}
 
           {/* Pending Referrals & Upcoming Sessions */}
-          {!loading && (
+          {!loading && !error && (
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
@@ -481,7 +396,7 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* Upcoming Sessions - Sorted by Closest Date/Time */}
+              {/* Upcoming Sessions */}
               <div style={{
                 background: '#fff',
                 borderRadius: 12,
@@ -563,56 +478,6 @@ export default function Dashboard() {
                   ))
                 )}
               </div>
-            </div>
-          )}
-
-          {/* Recent Notifications */}
-          {!loading && notifications.length > 0 && (
-            <div style={{
-              background: '#fff',
-              borderRadius: 12,
-              padding: 24,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              marginTop: 24
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: 16
-              }}>
-                <h3 style={{ color: '#2e1a47', fontSize: '18px', fontWeight: 600, margin: 0 }}>
-                  🔔 Recent Notifications
-                </h3>
-              </div>
-
-              {notifications.slice(0, 5).map((notif, index) => (
-                <div
-                  key={index}
-                  onClick={() => !notif.isRead && markAsRead(notif.id)}
-                  style={{
-                    padding: '16px',
-                    borderRadius: 8,
-                    marginBottom: 8,
-                    cursor: 'pointer',
-                    background: !notif.isRead ? '#f3e8fd' : 'transparent',
-                    borderBottom: index < notifications.slice(0, 5).length - 1 ? '1px solid #e2e8f0' : 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {!notif.isRead && (
-                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4a2d6e', display: 'inline-block' }} />
-                        )}
-                        {notif.title}
-                      </div>
-                      <div style={{ fontSize: '13px', color: '#64748b', marginTop: 4 }}>{notif.message}</div>
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#94a3b8', whiteSpace: 'nowrap', marginLeft: 12 }}>{notif.time}</div>
-                  </div>
-                </div>
-              ))}
             </div>
           )}
         </div>
