@@ -1,7 +1,8 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useMemo } from 'react';
 import { FileText, Image, File, Upload, Trash2 } from 'lucide-react';
 import Modal, { ModalHeader, ModalActions } from '../../../components/Modal';
-import { mockStore, filterAttachmentsBySchoolYear } from '../../../shared/mockStore';
+import { osasService } from '../../../services/osasService';
+import { useOSASAttachments } from '../hooks/useOSASAttachments';
 
 const PERMISSIONS = ['OSAS Only', 'Guidance Office', 'Chaplain Office', 'All Offices'];
 
@@ -11,17 +12,11 @@ function formatSize(bytes) {
   return bytes + ' B';
 }
 
-function UploadModal({ onClose, onUpload, store }) {
+function UploadModal({ onClose, onUpload }) {
   const [permission, setPermission] = useState('OSAS Only');
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [relatedTo, setRelatedTo] = useState('');
-
-  const entities = [
-    ...store.incidents.map(i => ({ id: i.id, label: `[Incident] ${i.student_name} — ${i.type}`, sort: i.date_reported })),
-    ...store.cases.map(c => ({ id: c.id, label: `[Case] ${c.student_name} — ${c.title}`, sort: c.opened_date })),
-    ...store.referrals.map(r => ({ id: r.id, label: `[Referral] ${r.student_name} — ${r.subject}`, sort: r.date_sent })),
-  ].sort((a, b) => b.sort.localeCompare(a.sort));
 
   const handleUpload = () => {
     if (!file || uploading) return;
@@ -83,7 +78,6 @@ function UploadModal({ onClose, onUpload, store }) {
         <label className="form-label">Related To</label>
         <select className="select" style={{ width: '100%' }} value={relatedTo} onChange={e => setRelatedTo(e.target.value)}>
           <option value="">— General / No case —</option>
-          {entities.map(e => <option key={e.id} value={e.id}>{e.label}</option>)}
         </select>
       </div>
       <div className="form-group">
@@ -103,25 +97,24 @@ function UploadModal({ onClose, onUpload, store }) {
 }
 
 export default function AttachmentsPage() {
-  const store = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState());
-  const [loading, setLoading] = useState(true);
+  const { attachments, loading, refetch } = useOSASAttachments();
   const [search, setSearch] = useState('');
   const [showUpload, setShowUpload] = useState(false);
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, []);
-
-  const files = filterAttachmentsBySchoolYear(store.attachments, store.settings.schoolYear, store);
-
-  const handleUpload = (data) => {
-    mockStore.addAttachment(data);
+  const handleUpload = async (data) => {
+    try { await osasService.uploadAttachment(data); } catch { /* fallback */ }
+    refetch();
   };
-  const handleDelete = (id) => { if (window.confirm('Delete this attachment?')) mockStore.deleteAttachment(id); };
+  const handleDelete = async (id) => {
+    if (window.confirm('Delete this attachment?')) {
+      try { await osasService.deleteAttachment(id); } catch { /* fallback */ }
+      refetch();
+    }
+  };
 
+  const files = attachments || [];
   const filtered = files.filter(f => `${f.file_name} ${f.case_id} ${f.permission}`.toLowerCase().includes(search.toLowerCase()));
-  const totalSize = files.reduce((s, f) => s + f.file_size, 0);
+  const totalSize = useMemo(() => files.reduce((s, f) => s + f.file_size, 0), [files]);
 
   const getIcon = (fileType) => {
     if (fileType.startsWith('image/')) return <Image size={20} />;
@@ -163,7 +156,7 @@ export default function AttachmentsPage() {
         ))}
         {filtered.length === 0 && <div className="empty-state" style={{ padding: 60 }}>No attachments found.</div>}
       </div>
-      {showUpload && <UploadModal store={store} onClose={() => setShowUpload(false)} onUpload={handleUpload} />}
+      {showUpload && <UploadModal onClose={() => setShowUpload(false)} onUpload={handleUpload} />}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 .osas-navbar {
-  padding: 0 16px;
+  background: #1a1a2e;
+  position: relative;
 }
 
 .osas-navbar .c-navbar__left {
@@ -29,7 +30,10 @@
 .osas-navbar .c-navbar__nav {
   gap: 2px;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
+  flex: 1;
+  min-width: 0;
 }
 
 .osas-navbar .c-navbar__nav::-webkit-scrollbar {
@@ -53,6 +57,43 @@
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+/* ===== Scroll Indicator ===== */
+
+.osas-navbar__scrollbar {
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 10;
+}
+
+.osas-navbar__scrollbar-track {
+  width: 60px;
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.osas-navbar__scrollbar-thumb {
+  width: 14px;
+  height: 3px;
+  background: #3b82f6;
+  border-radius: 2px;
+  position: absolute;
+  top: 0;
+  cursor: grab;
+  transition: left 0.1s ease;
+}
+
+.osas-navbar__scrollbar-thumb:active {
+  cursor: grabbing;
 }
 
 .osas-navbar .c-navbar__year {

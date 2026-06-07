@@ -1,6 +1,6 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useMemo } from 'react';
 import { AlertTriangle, TrendingUp, Users } from 'lucide-react';
-import { mockStore, filterBySchoolYear } from '../../../shared/mockStore';
+import { useOSASAnalytics } from '../hooks/useOSASAnalytics';
 
 const TYPE_CATEGORY = {
   'Disrespectful Behavior': 'behavioral',
@@ -64,24 +64,17 @@ function computeRecidivism(reports, sanctions) {
 }
 
 export default function AnalyticsPage() {
-  const store = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState());
-  const [loading, setLoading] = useState(true);
+  const { analytics, loading } = useOSASAnalytics();
   const [tab, setTab] = useState('workload');
   const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, []);
-
-  const schoolYear = store.settings.schoolYear;
-  const filteredReports = filterBySchoolYear(store.reports, schoolYear, 'date_submitted');
-  const filteredCases = filterBySchoolYear(store.cases, schoolYear, 'opened_date');
-  const filteredSanctions = filterBySchoolYear(store.sanctions, schoolYear, 'date_issued');
-  const MOCK_TRENDS = computeTrends(filteredReports);
-  const MONTHLY_TOTALS = MOCK_TRENDS.map(m => ({ month: m.month, total: m.behavioral + m.academic + m.disciplinary + m.attendance }));
-  const MOCK_STAFF_WORKLOAD = computeWorkload(filteredCases);
-  const MOCK_RECIDIVISM = computeRecidivism(filteredReports, filteredSanctions);
+  const reports = useMemo(() => analytics?.reports || [], [analytics]);
+  const cases = useMemo(() => analytics?.cases || [], [analytics]);
+  const sanctions = useMemo(() => analytics?.sanctions || [], [analytics]);
+  const MOCK_TRENDS = useMemo(() => computeTrends(reports), [reports]);
+  const MONTHLY_TOTALS = useMemo(() => MOCK_TRENDS.map(m => ({ month: m.month, total: m.behavioral + m.academic + m.disciplinary + m.attendance })), [MOCK_TRENDS]);
+  const MOCK_STAFF_WORKLOAD = useMemo(() => computeWorkload(cases), [cases]);
+  const MOCK_RECIDIVISM = useMemo(() => computeRecidivism(reports, sanctions), [reports, sanctions]);
 
   if (loading) return <div className="loading">Loading analytics...</div>;
 

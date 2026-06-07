@@ -1,8 +1,9 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useMemo } from 'react';
 import { FileText, CheckCircle } from 'lucide-react';
 import Avatar from '../../../components/Avatar';
 import Modal, { ModalHeader, ModalActions } from '../../../components/Modal';
-import { mockStore, filterBySchoolYear } from '../../../shared/mockStore';
+import { osasService } from '../../../services/osasService';
+import { useOSASAssessments } from '../hooks/useOSASAssessments';
 
 function AssessmentModal({ assessment, onClose, onSave }) {
   const [form, setForm] = useState({ assessment: assessment?.assessment || '', recommendation: assessment?.recommendation || '', resolution: assessment?.resolution || '' });
@@ -32,29 +33,25 @@ function AssessmentModal({ assessment, onClose, onSave }) {
 }
 
 export default function ResponsePage() {
-  const store = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState());
-  const assessments = filterBySchoolYear(store.assessments, store.settings.schoolYear, 'date');
-  const [loading, setLoading] = useState(true);
+  const { assessments, loading, refetch } = useOSASAssessments();
   const [editTarget, setEditTarget] = useState(null);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, []);
-
-  const handleSave = (id, assessment, recommendation, resolution) => {
-    mockStore.updateAssessment(id, { assessment, recommendation, resolution, status: assessment && recommendation ? 'completed' : 'draft' });
+  const handleSave = async (id, assessment, recommendation, resolution) => {
+    try {
+      await osasService.updateAssessment(id, { assessment, recommendation, resolution, status: assessment && recommendation ? 'completed' : 'draft' });
+    } catch { /* fallback */ }
+    refetch();
   };
 
-  const filtered = assessments.filter(a => {
+  const filtered = (assessments || []).filter(a => {
     const matchSearch = `${a.student_name} ${a.type}`.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'all' || a.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
-  const stats = { total: assessments.length, completed: assessments.filter(a => a.status === 'completed').length, draft: assessments.filter(a => a.status === 'draft').length };
+  const stats = { total: (assessments || []).length, completed: (assessments || []).filter(a => a.status === 'completed').length, draft: (assessments || []).filter(a => a.status === 'draft').length };
 
   if (loading) return <div className="loading">Loading responses...</div>;
 

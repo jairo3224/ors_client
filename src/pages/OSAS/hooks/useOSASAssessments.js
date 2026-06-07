@@ -2,32 +2,32 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { osasService } from '../../../services/osasService';
 
-export function useOSASReferrals() {
+export function useOSASAssessments() {
   const { user } = useAuth();
 
-  const [referrals, setReferrals] = useState([]);
+  const [assessments, setAssessments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchReferrals = useCallback(async () => {
+  const fetchAssessments = useCallback(async () => {
     if (!user) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const data = await osasService.getReferrals();
-      setReferrals(Array.isArray(data) ? data : []);
+      const data = await osasService.getAssessments();
+      setAssessments(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message ?? 'Failed to fetch referrals.');
+      setError(err.message ?? 'Failed to fetch assessments.');
     } finally {
       setLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
-    fetchReferrals();
-  }, [fetchReferrals]);
+    fetchAssessments();
+  }, [fetchAssessments]);
 
-  return { referrals, loading, error, refetch: fetchReferrals };
+  return { assessments, loading, error, refetch: fetchAssessments };
 }

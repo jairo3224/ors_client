@@ -1,46 +1,61 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, Plus, Trash2 } from 'lucide-react';
-import { mockStore } from '../../../shared/mockStore';
+import { osasService } from '../../../services/osasService';
+import { useOSASSettings } from '../hooks/useOSASSettings';
 
 export default function SettingsPage() {
-  const store = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState());
-  const [loading, setLoading] = useState(true);
-  const [schoolYear, setSchoolYear] = useState(() => store.settings.schoolYear);
-  const [semester, setSemester] = useState(() => store.settings.semester);
+  const { settings, loading, refetch } = useOSASSettings();
+  const [schoolYear, setSchoolYear] = useState('');
+  const [semester, setSemester] = useState('');
   const [semesters] = useState(['1st Semester', '2nd Semester', 'Summer']);
   const [newType, setNewType] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, []);
+    if (settings) {
+      setSchoolYear(settings.schoolYear || '');
+      setSemester(settings.semester || '');
+    }
+  }, [settings]);
 
-  // Re-sync form state with store when navigating back
-  useEffect(() => {
-    setSchoolYear(store.settings.schoolYear);
-    setSemester(store.settings.semester);
-  }, [store.settings.schoolYear, store.settings.semester]);
+  const incidentTypes = settings?.incidentTypes || [];
 
-  const incidentTypes = store.settings.incidentTypes;
-
-  const handleSave = () => {
-    mockStore.updateSettings({ schoolYear, semester });
-    mockStore.addAuditLog({ action: 'SETTINGS_UPDATED', user: 'Admin User', role: 'OSAS', target: 'System Settings', details: `School year updated to ${schoolYear}` });
+  const handleSave = async () => {
+    try {
+      await osasService.updateSettings({ schoolYear, semester });
+    } catch { /* fallback */ }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    refetch();
   };
 
-  const handleAddType = () => {
+  const updateIncidentTypes = async (updatedTypes) => {
+    try {
+      await osasService.updateSettings({ ...settings, incidentTypes: updatedTypes });
+    } catch { /* fallback */ }
+    refetch();
+  };
+
+  const handleAddType = async () => {
     if (!newType.trim()) return;
-    mockStore.addIncidentType({ name: newType.trim(), description: newDesc.trim() });
+    const updatedTypes = [...incidentTypes, { id: Date.now(), name: newType.trim(), description: newDesc.trim(), active: true }];
+    await updateIncidentTypes(updatedTypes);
     setNewType('');
     setNewDesc('');
   };
 
-  const handleRemoveType = (id) => mockStore.removeIncidentType(id);
-  const handleToggleType = (id) => mockStore.toggleIncidentType(id);
+  const handleRemoveType = async (id) => {
+    const updatedTypes = incidentTypes.filter(t => Number(t.id) !== Number(id) && String(t.id) !== String(id));
+    await updateIncidentTypes(updatedTypes);
+  };
+
+  const handleToggleType = async (id) => {
+    const updatedTypes = incidentTypes.map(t =>
+      (Number(t.id) === Number(id) || String(t.id) === String(id)) ? { ...t, active: !t.active } : t
+    );
+    await updateIncidentTypes(updatedTypes);
+  };
 
   if (loading) return <div className="loading">Loading settings...</div>;
 

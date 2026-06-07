@@ -1,10 +1,11 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useMemo } from 'react';
 import { Calendar, Clock, MapPin, Users, FileText, CheckCircle, Plus, MessageSquare } from 'lucide-react';
 import Avatar from '../../../components/Avatar';
 import Badge from '../../../components/Badge';
 import Modal, { ModalHeader, ModalActions } from '../../../components/Modal';
 import { MEETING_STATUSES, MEETING_STATUS_COLORS } from '../../../constants';
-import { mockStore, filterBySchoolYear } from '../../../shared/mockStore';
+import { osasService } from '../../../services/osasService';
+import { useOSASMeetings } from '../hooks/useOSASMeetings';
 
 function ScheduleModal({ onClose, onSubmit }) {
   const [title, setTitle] = useState('');
@@ -115,37 +116,37 @@ function MeetingDetailModal({ meeting, onClose, onSaveMinutes, onSaveOutcomes })
 }
 
 export default function MeetingsPage() {
-  const store = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState());
-  const meetings = filterBySchoolYear(store.meetings, store.settings.schoolYear, 'date');
-  const [loading, setLoading] = useState(true);
+  const { meetings, loading, refetch } = useOSASMeetings();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showSchedule, setShowSchedule] = useState(false);
   const [detailTarget, setDetailTarget] = useState(null);
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, []);
-
-  const handleSchedule = (data) => {
-    mockStore.addMeeting({ student_name: data.studentName, title: data.title, date: data.date, time: data.time, location: data.location, participants: data.participants, agenda: data.agenda });
+  const handleSchedule = async (data) => {
+    await osasService.createMeeting({ student_name: data.studentName, title: data.title, date: data.date, time: data.time, location: data.location, participants: data.participants, agenda: data.agenda });
+    refetch();
   };
-  const handleSaveMinutes = (id, text) => mockStore.updateMeeting(id, { minutes: text });
-  const handleSaveOutcomes = (id, text) => mockStore.updateMeeting(id, { outcomes: text });
+  const handleSaveMinutes = async (id, text) => {
+    try { await osasService.updateMeeting(id, { minutes: text }); } catch { /* fallback */ }
+    refetch();
+  };
+  const handleSaveOutcomes = async (id, text) => {
+    try { await osasService.updateMeeting(id, { outcomes: text }); } catch { /* fallback */ }
+    refetch();
+  };
 
-  const filtered = meetings.filter(m => {
+  const filtered = (meetings || []).filter(m => {
     const matchSearch = `${m.title} ${m.student_name} ${m.case_id} ${m.location}`.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'all' || m.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
-  const stats = {
-    total: meetings.length,
-    scheduled: meetings.filter(m => m.status === 'scheduled').length,
-    inProgress: meetings.filter(m => m.status === 'in_progress').length,
-    completed: meetings.filter(m => m.status === 'completed').length,
-  };
+  const stats = useMemo(() => ({
+    total: (meetings || []).length,
+    scheduled: (meetings || []).filter(m => m.status === 'scheduled').length,
+    inProgress: (meetings || []).filter(m => m.status === 'in_progress').length,
+    completed: (meetings || []).filter(m => m.status === 'completed').length,
+  }), [meetings]);
 
   if (loading) return <div className="loading">Loading meetings...</div>;
 
