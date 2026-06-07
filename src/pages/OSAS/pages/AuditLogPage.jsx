@@ -1,6 +1,6 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useMemo } from 'react';
 import { ClipboardList, Search } from 'lucide-react';
-import { mockStore, filterBySchoolYear } from '../../../shared/mockStore';
+import { useOSASAuditLogs } from '../hooks/useOSASAuditLogs';
 
 const ACTION_COLORS = {
   INCIDENT_CREATED: '#1565c0',
@@ -18,17 +18,11 @@ const ACTION_COLORS = {
 };
 
 export default function AuditLogPage() {
-  const store = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState());
-  const [loading, setLoading] = useState(true);
+  const { auditLogs, loading } = useOSASAuditLogs();
   const [search, setSearch] = useState('');
   const [filterAction, setFilterAction] = useState('all');
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, []);
-
-  const logs = filterBySchoolYear(store.auditLogs, store.settings.schoolYear, 'timestamp');
+  const logs = auditLogs || [];
 
   const filtered = logs.filter(l => {
     const matchSearch = `${l.action} ${l.user} ${l.target} ${l.details}`.toLowerCase().includes(search.toLowerCase());

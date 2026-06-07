@@ -1,8 +1,9 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useMemo } from 'react';
 import { AlertTriangle, Ban, Clock, FileText, ShieldAlert } from 'lucide-react';
 import Avatar from '../../../components/Avatar';
 import Modal, { ModalHeader, ModalActions } from '../../../components/Modal';
-import { mockStore, filterBySchoolYear } from '../../../shared/mockStore';
+import { osasService } from '../../../services/osasService';
+import { useOSASSanctions } from '../hooks/useOSASSanctions';
 
 const SANCTION_TYPES = [
   { id: 'warning', label: 'Warning', icon: '\u26A0\uFE0F', color: '#f57f17' },
@@ -55,29 +56,28 @@ function IssueSanctionModal({ onClose, onSubmit }) {
 }
 
 export default function SanctionsPage() {
-  const store = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState());
-  const sanctions = filterBySchoolYear(store.sanctions, store.settings.schoolYear, 'date_issued');
-  const [loading, setLoading] = useState(true);
+  const { sanctions, loading, refetch } = useOSASSanctions();
   const [showIssue, setShowIssue] = useState(false);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, []);
+  const handleIssue = async (data) => {
+    await osasService.createSanction({ student_name: data.studentName, student_id: 'TBD', type: data.type, reason: data.reason, notes: data.notes, duration: data.duration || null });
+    refetch();
+  };
+  const handleComplete = async (id) => {
+    try { await osasService.updateSanction(id, { status: 'completed' }); } catch { /* fallback */ }
+    refetch();
+  };
 
-  const handleIssue = (data) => mockStore.addSanction({ student_name: data.studentName, student_id: 'TBD', type: data.type, reason: data.reason, notes: data.notes, duration: data.duration || null });
-  const handleComplete = (id) => mockStore.updateSanction(id, { status: 'completed' });
-
-  const filtered = sanctions.filter(s => {
+  const filtered = (sanctions || []).filter(s => {
     const matchSearch = `${s.student_name} ${s.type} ${s.reason}`.toLowerCase().includes(search.toLowerCase());
     const matchType = filterType === 'all' || s.type === filterType;
     const matchStatus = filterStatus === 'all' || s.status === filterStatus;
     return matchSearch && matchType && matchStatus;
   });
-  const stats = { total: sanctions.length, active: sanctions.filter(s => s.status === 'active').length, pending: sanctions.filter(s => s.status === 'pending').length, completed: sanctions.filter(s => s.status === 'completed').length };
+  const stats = useMemo(() => ({ total: (sanctions || []).length, active: (sanctions || []).filter(s => s.status === 'active').length, pending: (sanctions || []).filter(s => s.status === 'pending').length, completed: (sanctions || []).filter(s => s.status === 'completed').length }), [sanctions]);
 
   if (loading) return <div className="loading">Loading sanctions...</div>;
 

@@ -1,11 +1,12 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { AlertTriangle, FileText, Clock, ShieldAlert, Users, Building2, Briefcase, TrendingUp, Plus, Send, Search } from 'lucide-react';
 import Avatar from '../../../components/Avatar';
 import Modal, { ModalHeader, ModalActions } from '../../../components/Modal';
 import { INCIDENT_TYPES } from '../../../constants';
 import { ALL_STUDENTS } from '../../../constants/mockData';
-import { mockStore, filterBySchoolYear } from '../../../shared/mockStore';
+import { osasService } from '../../../services/osasService';
+import { useOSASOverview } from '../hooks/useOSASOverview';
 
 function MetricCard({ icon, title, value, sub, tooltip, accent, buttonLabel, onClick }) {
   return (
@@ -39,16 +40,13 @@ function MetricCard({ icon, title, value, sub, tooltip, accent, buttonLabel, onC
 
 export default function OverviewPage() {
   const { user } = useAuth();
-  const store = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState());
-  const schoolYear = store.settings.schoolYear;
-  const reports = filterBySchoolYear(store.reports, schoolYear, 'date_submitted');
-  const cases = filterBySchoolYear(store.cases, schoolYear, 'opened_date');
-  const [loading, setLoading] = useState(true);
+  const { overview, loading } = useOSASOverview();
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, []);
+  const reports = useMemo(() => overview?.reports || [], [overview]);
+  const cases = useMemo(() => overview?.cases || [], [overview]);
+  const incidents = useMemo(() => overview?.incidents || [], [overview]);
+  const sanctions = useMemo(() => overview?.sanctions || [], [overview]);
+  const assessments = useMemo(() => overview?.assessments || [], [overview]);
 
   const pendingReports = reports.filter(r => r.status === 'pending').length;
   const criticalAlerts = reports.filter(r => r.severity === 'critical').length;
@@ -96,16 +94,11 @@ export default function OverviewPage() {
   const handleReportSubmit = async () => {
     if (!formStudent || !formType || !formDesc) return;
     setFormSubmitting(true);
-    await new Promise(r => setTimeout(r, 600));
-    mockStore.addReport({
-      student_name: formStudent,
-      teacher_name: 'OSAS Office',
-      department: user?.department_name || 'OSAS',
-      type: formType,
-      severity: 'moderate',
-      description: formDesc,
-      date_submitted: formDate,
-    });
+    try {
+      await osasService.createReferral(null, 'OSAS', `${formType}: ${formDesc}`);
+    } catch {
+      // API not available yet
+    }
     setFormSubmitting(false);
     setShowReportModal(false);
     setFormStudent('');

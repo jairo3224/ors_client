@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Search, CheckCircle, XCircle, UserCheck, MessageSquare, AlertTriangle, FileText, Clock } from 'lucide-react';
 import Avatar from '../../../components/Avatar';
 import Badge from '../../../components/Badge';
 import StatusDropdown from '../../../components/StatusDropdown';
 import Modal, { ModalHeader, ModalActions } from '../../../components/Modal';
 import { PRIORITY_COLORS, INCIDENT_STATUSES, INCIDENT_STATUS_COLORS } from '../../../constants';
+import { osasService } from '../../../services/osasService';
 import { useOSASIncidents } from '../hooks/useOSASIncidents';
 
 function AssignModal({ incident, onClose, onAssign }) {
@@ -74,28 +75,42 @@ function NoteModal({ incident, onClose, onSave }) {
 }
 
 export default function IncidentsPage() {
-  const {
-    loading,
-    filteredIncidents,
-    stats,
-    search,
-    setSearch,
-    filterStatus,
-    setFilterStatus,
-    filterPriority,
-    setFilterPriority,
-    updateStatus,
-    assignIncident,
-    saveIncidentNote,
-  } = useOSASIncidents();
+  const { incidents, loading, refetch } = useOSASIncidents();
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterPriority, setFilterPriority] = useState('all');
   const [assignTarget, setAssignTarget] = useState(null);
   const [noteTarget, setNoteTarget] = useState(null);
 
-  const handleStatusChange = updateStatus;
-  const handleAssign = assignIncident;
-  const handleSaveNote = saveIncidentNote;
+  const handleStatusChange = async (id, newStatus) => {
+    try { await osasService.updateIncident(id, { status: newStatus }); } catch { /* fallback */ }
+    refetch();
+  };
+  const handleAssign = async (id, office, reason) => {
+    try { await osasService.updateIncident(id, { assigned_to: office, assignment_reason: reason, status: 'forwarded' }); } catch { /* fallback */ }
+    refetch();
+  };
+  const handleSaveNote = async (id, note) => {
+    try { await osasService.updateIncident(id, { notes: note }); } catch { /* fallback */ }
+    refetch();
+  };
 
-  const filtered = filteredIncidents;
+  const filtered = useMemo(() => {
+    return (incidents || []).filter(i => {
+      const matchSearch = `${i.student_name} ${i.teacher_name} ${i.type}`.toLowerCase().includes(search.toLowerCase());
+      const matchStatus = filterStatus === 'all' || i.status === filterStatus;
+      const matchPriority = filterPriority === 'all' || i.priority === filterPriority;
+      return matchSearch && matchStatus && matchPriority;
+    });
+  }, [incidents, search, filterStatus, filterPriority]);
+
+  const stats = useMemo(() => ({
+    total: (incidents || []).length,
+    reported: (incidents || []).filter(i => i.status === 'reported').length,
+    underReview: (incidents || []).filter(i => i.status === 'under_review' || i.status === 'investigating').length,
+    resolved: (incidents || []).filter(i => i.status === 'resolved').length,
+    critical: (incidents || []).filter(i => i.priority === 'critical').length,
+  }), [incidents]);
 
   if (loading) return <div className="loading">Loading incidents...</div>;
 

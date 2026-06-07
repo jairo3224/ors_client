@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { Send, Inbox, Reply, ArrowRight, Building2 } from 'lucide-react';
 import Avatar from '../../../components/Avatar';
 import Modal, { ModalHeader, ModalActions } from '../../../components/Modal';
+import { osasService } from '../../../services/osasService';
 import { useOSASReferrals } from '../hooks/useOSASReferrals';
 
 const OFFICES = ['OSAS', 'Guidance Office', 'Chaplain', 'Department Head'];
@@ -65,29 +66,33 @@ function SendModal({ onClose, onSubmit }) {
 
 export default function ReferralsPage() {
   const { user } = useAuth();
-  const {
-    loading,
-    tab,
-    setTab,
-    search,
-    setSearch,
-    filteredReferrals,
-    pendingInbox,
-    respondReferral,
-    sendReferral,
-  } = useOSASReferrals();
+  const { referrals, loading, refetch } = useOSASReferrals();
+  const [tab, setTab] = useState('inbox');
+  const [search, setSearch] = useState('');
   const [respondTarget, setRespondTarget] = useState(null);
   const [showSend, setShowSend] = useState(false);
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, []);
+  const inboxItems = useMemo(() => (referrals || []).filter(r => r.to_office === 'OSAS'), [referrals]);
+  const sentItems = useMemo(() => (referrals || []).filter(r => r.from_office === 'OSAS'), [referrals]);
+  const allItems = tab === 'inbox' ? inboxItems : tab === 'sent' ? sentItems : (referrals || []);
+  const pendingInbox = useMemo(() => inboxItems.filter(r => r.status === 'pending').length, [inboxItems]);
 
-  const handleRespond = respondReferral;
-  const handleSend = sendReferral;
+  const filtered = useMemo(() => {
+    return allItems.filter(r =>
+      `${r.student_name} ${r.subject} ${r.from_office} ${r.to_office}`
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    );
+  }, [allItems, search]);
 
-  const filtered = filteredReferrals;
+  const handleRespond = async (id, responseText) => {
+    try { await osasService.updateReferral(id, { status: 'responded', response: responseText, responded_at: new Date().toISOString().split('T')[0] }); } catch { /* fallback */ }
+    refetch();
+  };
+  const handleSend = async (data) => {
+    try { await osasService.createReferral(null, data.toOffice, `${data.subject}: ${data.description}`); } catch { /* fallback */ }
+    refetch();
+  };
 
   if (loading) return <div className="loading">Loading referrals...</div>;
 

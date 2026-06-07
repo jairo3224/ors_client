@@ -1,7 +1,6 @@
-import { useState, useSyncExternalStore } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { mockStore } from '../../../shared/mockStore';
 import spacLogo from '../../../assets/spac logo 2.png';
 import { LayoutDashboard, ShieldAlert, ArrowLeftRight, Ban, MessageSquare, BarChart3, Users, Settings, ClipboardList, Paperclip, Calendar } from 'lucide-react';
 import '../../chairperson/components/ChairpersonNavbar.css';
@@ -24,7 +23,76 @@ const NAV_ITEMS = [
 export default function OsasNavbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const schoolYear = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState().settings.schoolYear);
+  const schoolYear = '';
+  const TRACK_WIDTH = 60;
+  const THUMB_WIDTH = 14;
+  const THUMB_RANGE = TRACK_WIDTH - THUMB_WIDTH;
+
+  const navRef = useRef(null);
+  const trackRef = useRef(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const updateIndicator = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const progress = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
+    setScrollProgress(progress);
+  }, []);
+
+  const scrollToProgress = useCallback((progress) => {
+    const el = navRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    el.scrollLeft = progress * maxScroll;
+  }, []);
+
+  const handleTrackClick = useCallback((e) => {
+    if (isDragging) return;
+    const track = trackRef.current;
+    if (!track) return;
+    const rect = track.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const progress = Math.max(0, Math.min(1, (x - THUMB_WIDTH / 2) / THUMB_RANGE));
+    scrollToProgress(progress);
+  }, [isDragging, scrollToProgress]);
+
+  const handleThumbMouseDown = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    updateIndicator();
+    el.addEventListener('scroll', updateIndicator);
+    window.addEventListener('resize', updateIndicator);
+    return () => {
+      el.removeEventListener('scroll', updateIndicator);
+      window.removeEventListener('resize', updateIndicator);
+    };
+  }, [updateIndicator]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMouseMove = (e) => {
+      const track = trackRef.current;
+      if (!track) return;
+      const rect = track.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const progress = Math.max(0, Math.min(1, (x - THUMB_WIDTH / 2) / THUMB_RANGE));
+      scrollToProgress(progress);
+    };
+    const handleMouseUp = () => setIsDragging(false);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, scrollToProgress]);
 
   const userName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Admin';
   const roleName = user?.role_name || 'OSAS';
@@ -45,7 +113,7 @@ export default function OsasNavbar() {
           </div>
         </div>
 
-        <nav className="c-navbar__nav">
+        <nav className="c-navbar__nav" ref={navRef}>
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.path}
@@ -69,6 +137,11 @@ export default function OsasNavbar() {
           <span className="c-navbar__role">{roleName}</span>
         </div>
         <button onClick={handleLogout} className="c-navbar__logout">Sign Out</button>
+      </div>
+      <div className="osas-navbar__scrollbar">
+        <div className="osas-navbar__scrollbar-track" ref={trackRef} onClick={handleTrackClick}>
+          <div className="osas-navbar__scrollbar-thumb" style={{ left: `${scrollProgress * THUMB_RANGE}px` }} onMouseDown={handleThumbMouseDown} />
+        </div>
       </div>
     </header>
   );

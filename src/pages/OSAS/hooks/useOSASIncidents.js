@@ -1,54 +1,33 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import { mockStore, filterBySchoolYear } from '../../../shared/mockStore';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../../context/AuthContext';
+import { osasService } from '../../../services/osasService';
 
 export function useOSASIncidents() {
-  const store = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState());
-  const incidents = filterBySchoolYear(store.incidents, store.settings.schoolYear, 'date_reported');
+  const { user } = useAuth();
 
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterPriority, setFilterPriority] = useState('all');
+  const [incidents, setIncidents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchIncidents = useCallback(async () => {
+    if (!user) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await osasService.getIncidents();
+      setIncidents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message ?? 'Failed to fetch incidents.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
+    fetchIncidents();
+  }, [fetchIncidents]);
 
-  const filteredIncidents = useMemo(() => {
-    return incidents.filter(i => {
-      const matchSearch = `${i.student_name} ${i.teacher_name} ${i.type}`.toLowerCase().includes(search.toLowerCase());
-      const matchStatus = filterStatus === 'all' || i.status === filterStatus;
-      const matchPriority = filterPriority === 'all' || i.priority === filterPriority;
-      return matchSearch && matchStatus && matchPriority;
-    });
-  }, [incidents, search, filterStatus, filterPriority]);
-
-  const stats = useMemo(() => ({
-    total: incidents.length,
-    reported: incidents.filter(i => i.status === 'reported').length,
-    underReview: incidents.filter(i => i.status === 'under_review' || i.status === 'investigating').length,
-    resolved: incidents.filter(i => i.status === 'resolved').length,
-    critical: incidents.filter(i => i.priority === 'critical').length,
-  }), [incidents]);
-
-  const updateStatus = (id, newStatus) => mockStore.updateIncident(id, { status: newStatus });
-  const assignIncident = (id, office, reason) => mockStore.updateIncident(id, { assigned_to: office, assignment_reason: reason, status: 'forwarded' });
-  const saveIncidentNote = (id, note) => mockStore.updateIncident(id, { notes: note });
-
-  return {
-    loading,
-    incidents,
-    filteredIncidents,
-    stats,
-    search,
-    setSearch,
-    filterStatus,
-    setFilterStatus,
-    filterPriority,
-    setFilterPriority,
-    updateStatus,
-    assignIncident,
-    saveIncidentNote,
-  };
+  return { incidents, loading, error, refetch: fetchIncidents };
 }

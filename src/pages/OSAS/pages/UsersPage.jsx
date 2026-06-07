@@ -1,6 +1,7 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useMemo } from 'react';
 import { Users, UserPlus, Shield, Search } from 'lucide-react';
-import { mockStore } from '../../../shared/mockStore';
+import { osasService } from '../../../services/osasService';
+import { useOSASUsers } from '../hooks/useOSASUsers';
 
 const ROLES = ['OSAS', 'Guidance Office', 'Chaplain', 'Department Head', 'Teacher'];
 
@@ -31,35 +32,34 @@ function UserModal({ user, onClose, onSave, mode }) {
 }
 
 export default function UsersPage() {
-  const store = useSyncExternalStore(mockStore.subscribe, () => mockStore.getState());
-  const [loading, setLoading] = useState(true);
+  const { users, loading, refetch } = useOSASUsers();
   const [search, setSearch] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [editTarget, setEditTarget] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, []);
-
-  const users = store.users;
-
-  const handleSave = (data) => {
-    if (data.id && users.find(u => u.id === data.id)) {
-      mockStore.updateUser(data.id, data);
+  const handleSave = async (data) => {
+    if (data.id && (users || []).find(u => u.id === data.id)) {
+      await osasService.updateUser(data.id, data);
     } else {
-      mockStore.addUser(data);
+      await osasService.createUser(data);
+    }
+    refetch();
+  };
+  const handleToggleStatus = async (id) => {
+    const user = (users || []).find(u => u.id === id);
+    if (user) {
+      await osasService.updateUser(id, { status: user.status === 'active' ? 'inactive' : 'active' });
+      refetch();
     }
   };
-  const handleToggleStatus = (id) => mockStore.toggleUserStatus(id);
 
-  const filtered = users.filter(u => {
+  const filtered = (users || []).filter(u => {
     const matchSearch = `${u.first_name} ${u.last_name} ${u.email} ${u.role_name}`.toLowerCase().includes(search.toLowerCase());
     const matchRole = filterRole === 'all' || u.role_name === filterRole;
     return matchSearch && matchRole;
   });
-  const stats = { total: users.length, active: users.filter(u => u.status === 'active').length, roles: new Set(users.map(u => u.role_name)).size };
+  const stats = useMemo(() => ({ total: (users || []).length, active: (users || []).filter(u => u.status === 'active').length, roles: new Set((users || []).map(u => u.role_name)).size }), [users]);
 
   if (loading) return <div className="loading">Loading users...</div>;
 
